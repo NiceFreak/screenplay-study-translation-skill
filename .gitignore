@@ -1,0 +1,31 @@
+# Python/cache
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# OS/editor noise
+.DS_Store
+*.swp
+
+# User project inputs and generated outputs
+/work/
+/dist/
+/tmp/
+/*.pdf
+/*.ass
+/*.srt
+/*.vtt
+
+# Skill example project outputs; fixtures with committed tiny HTML/JSON are explicit exceptions.
+screenplay-study-translation/assets/work/
+screenplay-study-translation/assets/dist/
+screenplay-study-translation/assets/*.pdf
+screenplay-study-translation/assets/*.ass
+screenplay-study-translation/assets/*.srt
+screenplay-study-translation/assets/*.vtt
+
+# PDF scan smoke generates these in a temporary directory; keep them out if run manually.
+screenplay-study-translation/assets/fixtures/pdf-scan/source.pdf
+screenplay-study-translation/assets/fixtures/pdf-scan/work/

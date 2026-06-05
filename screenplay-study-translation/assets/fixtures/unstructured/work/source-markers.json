@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "source": {
+    "screenplay_pdf": "missing-source.pdf"
+  },
+  "markers": [
+    {
+      "type": "contd",
+      "pdf_page": 1,
+      "display_page": 0,
+      "text": "(CONT'D)",
+      "source_layer": "fixture"
+    }
+  ]
+}

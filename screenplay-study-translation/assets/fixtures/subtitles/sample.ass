@@ -1,0 +1,7 @@
+[Script Info]
+Title: Synthetic ASS Fixture
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:01.00,0:00:03.50,Default,,0,0,0,,第一句对白\NSecond line
+Dialogue: 0,0:00:04.00,0:00:05.25,Default,,0,0,0,,{\i1}带样式的对白{\i0}

@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "source": {
+    "screenplay_pdf": "missing-source.pdf"
+  },
+  "markers": [
+    {
+      "type": "scene_no",
+      "pdf_page": 1,
+      "display_page": 0,
+      "text": "1",
+      "source_layer": "fixture",
+      "scene_no": "1"
+    },
+    {
+      "type": "scene_no",
+      "pdf_page": 1,
+      "display_page": 0,
+      "text": "1",
+      "source_layer": "fixture",
+      "scene_no": "1"
+    },
+    {
+      "type": "contd",
+      "pdf_page": 1,
+      "display_page": 0,
+      "text": "(CONT'D)",
+      "source_layer": "fixture"
+    },
+    {
+      "type": "more",
+      "pdf_page": 2,
+      "display_page": 1,
+      "text": "(MORE)",
+      "source_layer": "fixture"
+    },
+    {
+      "type": "omitted",
+      "pdf_page": 3,
+      "display_page": 2,
+      "text": "OMITTED",
+      "source_layer": "fixture"
+    }
+  ]
+}
