@@ -1,0 +1,23 @@
+project:
+  title: Minimal Fixture
+  source_language: en
+  target_language: zh-CN
+
+inputs:
+  screenplay_pdf: missing-source.pdf
+  subtitles: null
+
+outputs:
+  marker_inventory: work/source-markers.json
+  html: dist/screenplay-study.html
+  pdf: null
+
+page_mapping:
+  title_pages: 1
+  first_screenplay_pdf_page: 1
+  displayed_page_offset: -1
+
+audit:
+  require_subtitles: false
+  require_structured_markers: true
+  paper_size: A4

@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "batch_id": "p001-002",
+  "source_pages": {
+    "start": 1,
+    "end": 2
+  },
+  "has_subtitles": false,
+  "front_matter": [
+    {
+      "id": "front-001",
+      "type": "note",
+      "pdf_page": 1,
+      "display_page": 0,
+      "source": "Written by CASEY",
+      "translation": "编剧：__凯西__"
+    }
+  ],
+  "entries": [
+    {
+      "id": "p001-e001",
+      "type": "scene_heading",
+      "pdf_page": 2,
+      "display_page": 1,
+      "source": "INT. ROOM - NIGHT",
+      "translation": "内景。__房间__ - 夜",
+      "markers": [
+        {
+          "type": "scene_no",
+          "text": "1",
+          "position": "left"
+        },
+        {
+          "type": "scene_no",
+          "text": "1",
+          "position": "right"
+        }
+      ]
+    },
+    {
+      "id": "p001-e002",
+      "type": "character",
+      "pdf_page": 2,
+      "display_page": 1,
+      "source": "CASEY (CONT'D)",
+      "translation": "凯西（续）",
+      "markers": [
+        {
+          "type": "contd",
+          "text": "(CONT'D)"
+        }
+      ]
+    },
+    {
+      "id": "p001-e003",
+      "type": "dialogue",
+      "pdf_page": 2,
+      "display_page": 1,
+      "source": "This is a synthetic line.",
+      "translation": "__凯西__听见**敲门声**，然后读到*画外音*说明。"
+    },
+    {
+      "id": "p002-e001",
+      "type": "format_marker",
+      "pdf_page": 3,
+      "display_page": 2,
+      "source": "INSERT SHOT - O.S. Omitted beat",
+      "translation": "本场删去",
+      "markers": [
+        {
+          "type": "omitted",
+          "text": "OMITTED"
+        }
+      ]
+    }
+  ]
+}

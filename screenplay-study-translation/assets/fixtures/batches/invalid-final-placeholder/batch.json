@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "batch_id": "p001-001",
+  "source_pages": {
+    "start": 1,
+    "end": 1
+  },
+  "has_subtitles": false,
+  "entries": [
+    {
+      "id": "p001-e001",
+      "type": "dialogue",
+      "pdf_page": 2,
+      "display_page": 1,
+      "source": "Synthetic line.",
+      "translation": "待译对白：Synthetic line."
+    }
+  ]
+}
