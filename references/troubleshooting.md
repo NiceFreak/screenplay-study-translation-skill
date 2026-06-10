@@ -106,6 +106,50 @@ When a new failure mode is discovered:
 - Do not treat the mixed labels as independent translation judgments for each
   fragment.
 
+### Subtitle Label Duplicated Inside Translation Text
+
+- Symptom: HTML shows a styled subtitle label and then repeats the same label
+  inside the spoken text, such as `<span class="subtitle-label">字幕差异</span>字幕差异...`.
+- Classify this as a translation-batch schema violation first, not as a
+  renderer bug.
+- Check the affected batch JSON. `subtitle_label` may contain `字幕匹配`,
+  `字幕差异`, or `字幕未见`; `translation` must contain only the reader-facing
+  translated text.
+- Clean only the affected current batch artifact and directly stale preview or
+  audit artifacts, preserving entry IDs, order, source text, page mapping,
+  markers, and schema.
+- Rerun `validate_batch.py --final` before continuing.
+- Do not solve this by adding renderer-side label stripping or by changing
+  subtitle-label semantics; the duplicated label belongs in data correction and
+  agent execution discipline.
+
+### Empty Or Missing Translation In Current Batch
+
+- If validation finds an empty or missing `translation` while the source entry
+  is present, classify it as a current-batch translation defect first.
+- Check adjacent entries and source rows to distinguish a true blank field from
+  a source extraction gap.
+- When the source evidence is clear and the fix is local, fill the missing
+  translation in the current batch only, preserving entry IDs, order, source
+  text, page mapping, markers, and schema.
+- Rerun final batch validation before continuing automatic execution.
+- If the source row itself is absent from extraction, switch classification to
+  source extraction defect and follow `Source-Lines Missing A Visible Page`.
+
+### Terminology Warning Conflicts With A Known Compound Term
+
+- If validation warns on a short term that appears inside a longer known term,
+  check the full source phrase before changing the translation.
+- Example pattern: a validator may warn on `Hail Mary` while the source phrase
+  is `Project Hail Mary`; the correct translation may be the project name rather
+  than the ship name.
+- Prefer the longest applicable terminology unit and source context over a
+  substring warning.
+- Do not change a correct contextual translation only to remove a rough
+  terminology warning.
+- If the pattern recurs across projects, record it as matcher evidence before
+  changing terminology validation logic.
+
 -----
 
 ## HTML Output

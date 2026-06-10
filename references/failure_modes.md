@@ -202,3 +202,67 @@ Root Cause: `note` entries used the same renderer path and CSS treatment as ordi
 Prevention: Treat `note` as a distinct schema entry type with separate HTML styling. Use `note` entries for reader-facing annotations tied to source evidence, and do not encode them as ordinary action text.
 Remediation: Convert affected annotations to `type: "note"` entries, rebuild HTML with note styling, and verify that body-text audits still exclude notes from source-entry preservation counts.
 Status: RESOLVED
+
+-----
+
+## FM-013 Subtitle Label Text Written Into Translation Field
+
+Name: Subtitle Label Pollution In Translation Text
+Symptoms: Dialogue renders with a styled subtitle label and then repeats the
+same label as ordinary dialogue text, for example
+`字幕差异字幕差异我不需要太空人。`.
+Root Cause: During manual or agent-authored batch creation, the subtitle state
+was written into both the structured `subtitle_label` field and the
+reader-facing `translation` field. This violates batch schema separation:
+metadata belongs in `subtitle_label`; translated spoken text belongs in
+`translation`.
+Prevention: Before writing or editing a translated batch, keep subtitle state
+and translation text as separate fields. During continuous execution, treat any
+label prefix inside `translation` while `subtitle_label` is present as a local
+current-batch data defect, not as renderer behavior. Do not rely on renderer
+normalization to hide schema pollution.
+Remediation: Clean only the affected batch translations by removing duplicated
+subtitle-label text from `translation`, preserve all source and mapping fields,
+delete stale previews or audits for the same range if needed, and rerun
+`validate_batch.py --final`.
+Status: MONITORED
+
+-----
+
+## FM-014 Local Missing Translation During Continuous Batch Execution
+
+Name: Current-Batch Translation Omission
+Symptoms: One or more entries in a translated batch have an empty or missing
+`translation` even though the corresponding source entry exists, or a visible
+source row is skipped in the batch.
+Root Cause: Long continuous execution can produce a local omission when the
+agent writes a batch artifact entry by entry. This is distinct from source
+extraction failure when the source row is present in extracted data.
+Prevention: Always run final batch validation before advancing. During
+authorized continuous execution, use the current-batch recoverable-fix path only
+for local, deterministic omissions where source evidence is clear and no schema,
+pipeline, validation, or terminology policy change is required.
+Remediation: Fill the missing translation in the current batch only, preserving
+entry IDs, order, source text, page mapping, markers, and schema. Rerun final
+batch validation before continuing. If source evidence is absent from extracted
+data, reclassify as an extraction defect instead.
+Status: MONITORED
+
+-----
+
+## FM-015 Substring Terminology Warning Against A Longer Valid Term
+
+Name: Short-Term Match Over Longer Contextual Term
+Symptoms: Final validation reports a terminology warning for a short source
+term even though the translation correctly follows a longer compound term in
+context.
+Root Cause: The terminology matcher can detect a shorter term inside a longer
+phrase without fully resolving longest-match context. A valid translation may
+therefore look like a term miss if judged only by substring evidence.
+Prevention: Treat terminology warnings as evidence to inspect, not automatic
+permission to rewrite. Check project terminology, source phrase boundaries, and
+the longest applicable term before changing translation.
+Remediation: Keep the correct contextual translation when source context
+supports the longer term. Record the warning as a known validation limitation or
+matcher evidence before changing validation behavior.
+Status: MONITORED

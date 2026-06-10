@@ -72,6 +72,9 @@ A batch combines source text rows from `source-lines.json`, adjacent structure m
 - Entry `markers` are rendered into HTML `data-marker-type` attributes by `scripts/build_html.py`.
 - Do not emit subtitle labels when `has_subtitles` is false.
 - When subtitles are present, labels may be `字幕匹配`, `字幕差异`, or `字幕未见`.
+- Subtitle label state belongs only in the structured `subtitle_label` field.
+  Do not prefix or embed `字幕匹配`, `字幕差异`, or `字幕未见` inside
+  `translation`; `translation` contains only reader-facing translated text.
 - When subtitles are present and a corresponding subtitle exists, dialogue entry
   `translation` should use the subtitle content directly. Non-dialogue entries
   are translated by AI using `work/style-profile.json`.

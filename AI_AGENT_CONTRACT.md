@@ -123,6 +123,31 @@ each batch step:
   and directly required previews
 - runs final batch validation before proceeding
 
+CURRENT-BATCH RECOVERABLE FIXES:
+
+During continuous batch execution, if final validation finds a local,
+deterministic defect in the current translated batch artifact, AI MAY fix the
+current batch and re-run validation instead of stopping immediately.
+
+Allowed recoverable defects are limited to:
+
+- missing or empty `translation` values where the source entry is present
+- draft placeholder translations left in the current translated batch
+- subtitle label text accidentally duplicated inside `translation` while the
+  structured `subtitle_label` field already contains the label
+
+The fix MUST:
+
+- modify only the current batch artifact and directly stale preview/audit
+  artifacts for that same range
+- preserve source text, entry IDs, page mapping, entry order, markers, and
+  schema
+- re-run final validation before continuing
+
+This recoverable-fix exception MUST NOT be used when the issue requires
+changing pipeline, schema, validation, renderer behavior, terminology policy,
+or global rules.
+
 BATCH CONTEXT PACKAGES:
 
 - a batch context package is a read-only compression of existing local
@@ -138,7 +163,8 @@ BATCH CONTEXT PACKAGES:
 
 Continuous batch execution MUST stop immediately when:
 
-- validation returns FAIL
+- validation returns FAIL that is not an allowed current-batch recoverable
+  defect
 - validation returns UNCERTAIN
 - a tool or filesystem error occurs
 - the next batch range cannot be determined from local artifacts

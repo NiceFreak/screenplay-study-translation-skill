@@ -178,6 +178,7 @@ def main() -> int:
     reflow_batch_dir = reflow_project_dir / "work" / "batches"
     reflow_batch = reflow_batch_dir / "reflow-batch.json"
     reflow_source_lines = reflow_project_dir / "work" / "source-lines.json"
+    reflow_subtitles = reflow_project_dir / "work" / "subtitles.json"
     reflow_project = reflow_project_dir / "project.yaml"
     reflow_html = reflow_project_dir / "dist" / "reflow.html"
     sample_draft_page_html = tmp_dir / "sample-draft-page.html"
@@ -680,12 +681,41 @@ def main() -> int:
     reflow_batch_dir.mkdir(parents=True)
     (reflow_project_dir / "dist").mkdir()
     (reflow_project_dir / "references").mkdir()
+    reflow_subtitles.write_text(
+        json_fixture(
+            {
+                "version": 1,
+                "source": "fixture.ass",
+                "events": [
+                    {
+                        "start": 2.0,
+                        "end": 4.0,
+                        "text": "圣母计划到底是什么 What's Project Hail Mary exactly?",
+                    },
+                    {
+                        "start": 12.0,
+                        "end": 14.0,
+                        "text": "字幕把这句更长的对白压缩了 The subtitles compress this longer guide line.",
+                    },
+                    {
+                        "start": 820.0,
+                        "end": 822.0,
+                        "text": "这句补充对白显示成片位置很靠后 This additional screenplay guide line appears later.",
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
     reflow_project.write_text(
         "\n".join(
             [
                 "project:",
                 "  title: Project: Hail Mary",
                 "  chinese_title: 挽救计划",
+                "",
+                "outputs:",
+                "  subtitles_json: work/subtitles.json",
                 "",
             ]
         ),
@@ -717,6 +747,18 @@ def main() -> int:
                 "改编自__安迪·威尔__（Andy Weir）的小说",
                 "",
                 "稿本日期：2022 年 12 月 15 日",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (reflow_project_dir / "references" / "reading_guide.md").write_text(
+        "\n".join(
+            [
+                "这份导读来自剧本与字幕的综合阅读，不是逐条字幕统计。",
+                "",
+                "### 阅读路径",
+                "",
+                "- 剧本保留了更多铺垫；成片字幕更强调即时剧情推进。",
             ]
         ),
         encoding="utf-8",
@@ -807,6 +849,32 @@ def main() -> int:
                         "source": "exactly?",
                         "translation": "到底是什么？",
                         "subtitle_label": "字幕匹配",
+                    },
+                    {
+                        "id": "r006",
+                        "type": "character",
+                        "pdf_page": 13,
+                        "display_page": 12,
+                        "source": "STRATT",
+                        "translation": "__史特拉__",
+                    },
+                    {
+                        "id": "r007",
+                        "type": "dialogue",
+                        "pdf_page": 13,
+                        "display_page": 12,
+                        "source": "The subtitles compress this longer guide line.",
+                        "translation": "字幕把这句更长的对白压缩了。",
+                        "subtitle_label": "字幕差异",
+                    },
+                    {
+                        "id": "r008",
+                        "type": "dialogue",
+                        "pdf_page": 13,
+                        "display_page": 12,
+                        "source": "This additional screenplay guide line appears later.",
+                        "translation": "这句补充对白显示成片位置很靠后。",
+                        "subtitle_label": "字幕未见",
                     },
                 ],
             }
@@ -1939,7 +2007,11 @@ def main() -> int:
                     "'class=\"entry scene-heading scene-heading-no-markers\"', "
                     "'<div id=\"r000\" class=\"entry scene-heading scene-heading-no-markers\"', "
                     "'data-source-entry-ids=\"r004,r005\"', '<span class=\"subtitle-label\">字幕匹配</span>', "
-                    "'本剧本出现的专业术语', '行尾星号（*）']; "
+                    "'本剧本出现的专业术语', '行尾星号（*）', "
+                    "'<h2 id=\"reading-guide-title\">导读</h2>', "
+                    "'这份导读来自剧本与字幕的综合阅读，不是逐条字幕统计。', "
+                    "'阅读路径', "
+                    "'剧本保留了更多铺垫；成片字幕更强调即时剧情推进。']; "
                     "forbidden=['标题页信息：', '<p>Screenplay by</p>', '<p>Drew Goddard</p>', "
                     "'id=\"r000\" class=\"entry scene-heading scene-heading-no-markers\" data-source-entry-ids=\"r000\" data-entry-type=\"scene_heading\" data-pdf-page=\"13\" data-display-page=\"12\"><span class=\"scene-marker-slot']; "
                     "missing=[item for item in required if item not in text]; "
@@ -1977,7 +2049,10 @@ def main() -> int:
                     "'<span class=\"reader-annotation\">敲门声</span>', "
                     "'<span class=\"reader-annotation\">画外音</span>', "
                     "'<p class=\"entry-line-with-revision-asterisk\"><span class=\"entry-line-text\">房间静静等待。</span><span class=\"revision-asterisk\" aria-label=\"源剧本修订星号\">*</span></p>']; "
+                    "forbidden=['导读：剧本与字幕差异', '导读：剧本场景与字幕位置差异']; "
                     "missing=[item for item in required + progress if item not in text]; "
+                    "bad=[item for item in forbidden if item in text]; "
+                    "missing += ['forbidden present: '+repr(bad)] if bad else []; "
                     "raise SystemExit('missing layout markers: '+repr(missing) if missing else 0)"
                 ),
             ],

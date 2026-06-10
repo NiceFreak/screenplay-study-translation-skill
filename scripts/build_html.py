@@ -44,6 +44,7 @@ SCREEN_TEXT_RE = re.compile(
 PROJECT_CONFIG_NAME = "project.yaml"
 READER_NOTES_PATH = Path("references") / "reader_notes.md"
 FRONT_MATTER_PATH = Path("references") / "front_matter.md"
+READING_GUIDE_PATH = Path("references") / "reading_guide.md"
 
 
 class DisplayUnit(TypedDict):
@@ -151,6 +152,14 @@ html {
   margin: 0.35rem 0;
   color: var(--muted);
   font-size: 0.92rem;
+}
+
+.reading-guide {
+  margin-bottom: 28px;
+}
+
+.reading-guide h3 {
+  color: var(--accent);
 }
 
 .term-note-list {
@@ -1399,6 +1408,28 @@ def render_reader_note(
   </section>"""
 
 
+def load_reading_guide_for_batch(
+    batch_path: Path | None, project_path: Path | None = None
+) -> str | None:
+    project_file = project_file_for_batch(batch_path, project_path)
+    if project_file is None:
+        return None
+    reading_guide_path = project_file.parent / READING_GUIDE_PATH
+    if not reading_guide_path.exists():
+        return None
+    return reading_guide_path.read_text(encoding="utf-8")
+
+
+def render_reading_guide(reading_guide_markdown: str | None) -> str:
+    if not reading_guide_markdown or not reading_guide_markdown.strip():
+        return ""
+    body = render_reader_note_markdown(reading_guide_markdown)
+    return f"""  <section class="reader-note reading-guide" aria-labelledby="reading-guide-title">
+    <h2 id="reading-guide-title">导读</h2>
+{body}
+  </section>"""
+
+
 def render_scene_index(entries: list[dict[str, Any]]) -> str:
     items = scene_index_entries(entries)
     summary = "场次索引"
@@ -1465,6 +1496,8 @@ def build_html(
     cover = render_cover(batch, source_rows, config, front_matter_markdown)
     reader_notes_markdown = load_reader_notes_for_batch(batch_path, project_path)
     note = render_reader_note(batch, reader_notes_markdown)
+    reading_guide_markdown = load_reading_guide_for_batch(batch_path, project_path)
+    reading_guide = render_reading_guide(reading_guide_markdown)
     entries = body_entries(batch)
     display_units = reflow_grouping_pass(entries)
     scene_index = render_scene_index(entries)
@@ -1481,6 +1514,7 @@ def build_html(
   <main class="screenplay-study" data-batch-id="{batch_id_attr}" data-progress-key="{progress_key_attr}">
 {cover}
 {note}
+{reading_guide}
 {scene_index}
 {body}
   </main>
