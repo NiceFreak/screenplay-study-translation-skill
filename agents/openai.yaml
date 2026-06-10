@@ -1,0 +1,11 @@
+default_prompt: |
+  Use $screenplay-study-translation.
+
+  On activation, read the following files in order:
+
+  1. AI_AGENT_CONTRACT       — runtime behavior rules
+  2. AI_AGENT_PROJECT_SPEC   — static pipeline and artifact description
+  3. SKILL.md                — translation and extraction knowledge
+
+  Follow the rules defined in those documents.
+  Do not proceed with any task until all three files have been read.
