@@ -1,0 +1,18 @@
+project:
+  title: Broken Links Fixture
+  chinese_title: 链接破损样例
+  source_language: en
+  target_language: zh-CN
+
+inputs:
+  screenplay_pdf: missing-source.pdf
+  subtitles: null
+
+outputs:
+  marker_inventory: work/source-markers.json
+  html: dist/screenplay-study.html
+  pdf: null
+
+audit:
+  require_subtitles: false
+  require_structured_markers: false

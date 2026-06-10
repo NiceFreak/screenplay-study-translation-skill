@@ -1,0 +1,32 @@
+project:
+  title: Example Film
+  chinese_title: 示例影片
+  source_language: en
+  target_language: zh-CN
+
+inputs:
+  screenplay_pdf: screenplay.pdf
+  subtitles: null
+
+outputs:
+  work_dir: work
+  dist_dir: dist
+  marker_inventory: work/source-markers.json
+  subtitles_json: work/subtitles.json
+  html: dist/screenplay-study.html
+  pdf: null
+
+page_mapping:
+  title_pages: 1
+  first_screenplay_pdf_page: 1
+  displayed_page_offset: -1
+
+translation:
+  batch_size_pages: 10
+  subtitle_labels: auto
+
+audit:
+  require_subtitles: false
+  require_structured_markers: true
+  paper_size: A4
+  fail_on_missing_required_files: true

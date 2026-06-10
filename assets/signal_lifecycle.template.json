@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "scope": "Stage 2 signal observation only",
+  "status_values": [
+    "open",
+    "reviewed",
+    "ignored"
+  ],
+  "records": []
+}

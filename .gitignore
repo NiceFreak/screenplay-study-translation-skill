@@ -19,13 +19,13 @@ __pycache__/
 /*.vtt
 
 # Skill example project outputs; fixtures with committed tiny HTML/JSON are explicit exceptions.
-screenplay-study-translation/assets/work/
-screenplay-study-translation/assets/dist/
-screenplay-study-translation/assets/*.pdf
-screenplay-study-translation/assets/*.ass
-screenplay-study-translation/assets/*.srt
-screenplay-study-translation/assets/*.vtt
+assets/work/
+assets/dist/
+assets/*.pdf
+assets/*.ass
+assets/*.srt
+assets/*.vtt
 
 # PDF scan smoke generates these in a temporary directory; keep them out if run manually.
-screenplay-study-translation/assets/fixtures/pdf-scan/source.pdf
-screenplay-study-translation/assets/fixtures/pdf-scan/work/
+assets/fixtures/pdf-scan/source.pdf
+assets/fixtures/pdf-scan/work/

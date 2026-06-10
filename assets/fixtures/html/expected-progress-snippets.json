@@ -1,0 +1,9 @@
+{
+  "snippets": [
+    "data-progress-key=\"screenplay-study-progress:p001-002:p001-002\"",
+    "localStorage.setItem(storageKey, JSON.stringify(payload));",
+    "!window.location.hash",
+    "window.scrollTo({ top: payload.scrollY, behavior: \"auto\" });",
+    "window.addEventListener(\"beforeunload\", saveProgress);"
+  ]
+}
