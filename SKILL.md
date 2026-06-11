@@ -102,6 +102,9 @@ Audit all markers against output before finalization.
   on the page.
 - Do not produce page-aligned PDFs. If PDF output is needed, prefer a reflowed A4 reading edition that labels source locations as “原剧本第 X 页”.
 - Audit and final outputs are different presentations of the same formal translation: audit may show engineering metadata; final output hides technical noise.
+- For full-project delivery, include a project-local `references/reading_guide.md`
+  as a reader guide near the front of the HTML. The guide is AI-authored project
+  prose, not renderer inference or a subtitle statistics report.
 
 -----
 
@@ -143,6 +146,7 @@ Read only what the task needs:
 **Translation and output:**
 
 - `references/batch_context.md` — compact current-batch context packages
+- `references/reading_guide.md` — reader guide artifact and compact guide-context workflow
 - `references/batch_schema.md` — translation batch format and validation
 - `references/terminology.md` — screenplay, camera, and format terms
 - `references/subtitle_alignment.md` — subtitle alignment (when subtitles are present)

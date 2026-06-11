@@ -50,6 +50,12 @@ for edition-wide reading conventions and screenplay-format professional terms.
 The renderer uses this artifact for the HTML reading note instead of deriving
 terms from each batch.
 
+`references/reading_guide.md` should normally be written after the merged
+translated batch exists and before final full-project delivery. Use
+`scripts/package_reading_guide_context.py` to prepare compact guide-writing
+context from project files instead of relying on chat history or rereading full
+project artifacts. See `references/reading_guide.md`.
+
 ## 2. Source Extraction
 
 Extract structured source data:
@@ -207,6 +213,7 @@ Final HTML should include:
 - user-supplied Chinese title and translated physical title-page information
   when source rows are available
 - reading note
+- reading guide from `references/reading_guide.md`
 - edition-wide format conventions and professional terms
 - conventions
 - scene index when source numbers exist, or scene-heading navigation when source numbers are absent

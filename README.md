@@ -64,6 +64,7 @@ my-film-project/
     terminology.md
     front_matter.md
     reader_notes.md
+    reading_guide.md
   work/
     source-lines.json
     source-markers.json
@@ -77,7 +78,7 @@ my-film-project/
     screenplay-study.html
 ```
 
-`references/terminology.md` 是项目级术语底表；`references/front_matter.md` 是封面和标题页信息的读者文本；`references/reader_notes.md` 是阅读说明和本剧本出现的专业术语说明。它们应在正式翻译前建立，后续批次复用，避免 renderer 或 agent 每批重新推断。
+`references/terminology.md` 是项目级术语底表；`references/front_matter.md` 是封面和标题页信息的读者文本；`references/reader_notes.md` 是阅读说明和本剧本出现的专业术语说明；`references/reading_guide.md` 是全本交付时创建的读者导读页。前三者应在正式翻译前建立，后续批次复用，避免 renderer 或 agent 每批重新推断；导读在全本译文合并后生成。
 
 ## Workflow
 
@@ -87,7 +88,8 @@ my-film-project/
 4. Setup artifacts：确认 Stage 2 后，建立项目级 terminology、front matter、reader notes 和 `work/style-profile.json`；这些是后续批次的稳定上下文。
 5. Batch translation：默认 5-10 页一批。先用 `scripts/draft_batch.py` 建当前批次草稿，再用 `scripts/package_batch_context.py` 打包当前页范围所需上下文，翻译后写入 `work/batches/translated-pXXX-YYY.json`。
 6. Batch validation and preview：每批运行 `scripts/validate_batch.py --final`，用 `scripts/build_html.py` 生成局部 HTML 预览。第一批用于确认整体风格与格式；通过后，用户可显式授权连续批次运行。
-7. Finalization：所有批次验证通过后，用 `scripts/merge_batches.py` 合并，再用 `scripts/finalize_html.py` 生成 `dist/screenplay-study.html` 并运行 audit。
+7. Reading guide：全本交付默认执行。全本合并后，用 `scripts/package_reading_guide_context.py` 生成低成本导读上下文，再由 Codex 写入 `references/reading_guide.md`。
+8. Finalization：所有批次验证通过后，用 `scripts/merge_batches.py` 合并，再用 `scripts/finalize_html.py` 生成 `dist/screenplay-study.html` 并运行 audit。
 
 运行控制以 `AI_AGENT_CONTRACT.md` 为准：每批都是独立验证单元；只有用户明确授权 continuous batch execution，Codex 才能在 PASS 后自动进入下一批；遇到 FAIL、UNCERTAIN、工具错误或范围不清必须停止。
 
@@ -99,7 +101,7 @@ my-film-project/
 
 - 完整翻译 screenplay 文档：对白、动作、场景标题、角色提示、括号说明、转场、画外音、格式标记和银幕文字。
 - 使用 `.ass`、`.srt`、`.vtt` 中文字幕校准对白与风格；没有字幕时，AI 翻译全部元素。
-- 生成适合阅读和审校的 HTML：封面、阅读说明、专业术语、场景导航、源页码、阅读进度和中文 reflow。
+- 生成适合阅读和审校的 HTML：封面、阅读说明、专业术语、读者导读、场景导航、源页码、阅读进度和中文 reflow。
 - 保留结构审计能力：batch JSON、source markers、HTML marker attributes、batch validation 和 final audit。
 
 ## Manual Commands
@@ -139,6 +141,7 @@ python3 scripts/audit.py my-film-project/project.yaml --html my-film-project/dis
 
 ```bash
 python3 scripts/merge_batches.py --batch-dir my-film-project/work/batches --output my-film-project/work/batches/translated-p001-126.json
+python3 scripts/package_reading_guide_context.py my-film-project/project.yaml --batch my-film-project/work/batches/translated-p001-126.json
 python3 scripts/finalize_html.py my-film-project/project.yaml my-film-project/work/batches/translated-p001-126.json
 ```
 
@@ -166,7 +169,7 @@ ruff check scripts
 ruff format --check scripts
 ```
 
-`scripts/smoke.py` 是主要回归检查，覆盖 extraction、marker scan、subtitle parsing、batch validation、HTML build、reflow、front matter、reader notes、scene-number/no-scene-number rendering、merge/finalize 和 audit。
+`scripts/smoke.py` 是主要回归检查，覆盖 extraction、marker scan、subtitle parsing、batch validation、HTML build、reflow、front matter、reader notes、reading guide context、scene-number/no-scene-number rendering、merge/finalize 和 audit。
 
 ## Non-goals
 
