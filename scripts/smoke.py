@@ -1075,6 +1075,7 @@ def main() -> int:
                 str(SCRIPTS_DIR / "make_sample_batch.py"),
                 str(SCRIPTS_DIR / "merge_batches.py"),
                 str(SCRIPTS_DIR / "package_batch_context.py"),
+                str(SCRIPTS_DIR / "package_reading_guide_context.py"),
                 str(SCRIPTS_DIR / "parse_subtitles.py"),
                 str(SCRIPTS_DIR / "scan_markers.py"),
                 str(SCRIPTS_DIR / "smoke.py"),
@@ -1511,6 +1512,35 @@ def main() -> int:
                     "and data.get('subtitle_candidates', {}).get('available') is True "
                     "and 'source_rows_excerpt' not in data; "
                     "raise SystemExit(0 if ok else 'batch context package contract failed')"
+                ),
+            ],
+        },
+        {
+            "name": "package_reading_guide_context",
+            "command": [
+                python,
+                str(SCRIPTS_DIR / "package_reading_guide_context.py"),
+                str(sample_project),
+                "--batch",
+                str(sample_draft_page_batch),
+                "--output",
+                str(tmp_dir / "reading-guide-context.json"),
+            ],
+        },
+        {
+            "name": "assert_reading_guide_context",
+            "command": [
+                python,
+                "-c",
+                (
+                    "import json; "
+                    "from pathlib import Path; "
+                    f"data=json.loads(Path({str(tmp_dir / 'reading-guide-context.json')!r}).read_text(encoding='utf-8')); "
+                    "ok=data.get('kind')=='reading_guide_context' "
+                    "and data.get('guide_brief', {}).get('target_path')=='references/reading_guide.md' "
+                    "and 'arc_segments' in data "
+                    "and 'subtitle_alignment' in data; "
+                    "raise SystemExit(0 if ok else 'reading guide context contract failed')"
                 ),
             ],
         },

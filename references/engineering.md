@@ -52,6 +52,8 @@ cross-references:
   metadata, and inline markup roles.
 - `batch_context.md` owns compact per-batch context package structure and token
   cost-control constraints.
+- `reading_guide.md` owns optional project-local reading-guide purpose,
+  content rules, and compact guide-context workflow.
 - `terminology.md` owns English-to-Chinese translation choices and project-local
   terminology rules.
 - `validation.md` owns gates and checks, but should reference schema/taxonomy
@@ -88,6 +90,7 @@ These are the scripts an agent is most likely to use in a real project:
 - `parse_subtitles.py`: normalize optional subtitles
 - `draft_batch.py`: create placeholder translation batches from source lines and markers
 - `package_batch_context.py`: create compact read-only current-batch context packages for low-token translation
+- `package_reading_guide_context.py`: create compact read-only final-project context for AI-authored reading guides
 - `merge_batches.py`: merge validated translated batches before final full-project HTML output
 - `build_html.py`: build batch or final HTML while preserving structured markers
 - `finalize_html.py`: validate final batch, build HTML, audit output, and optionally clean transient files

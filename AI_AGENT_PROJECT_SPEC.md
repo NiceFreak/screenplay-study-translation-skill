@@ -47,6 +47,7 @@ Intermediate outputs:
 
 - extracted source markers
 - project-local terminology baseline
+- project-local reading guide
 - optional batch context packages
 - translation batches (JSON)
 - validation reports
@@ -141,6 +142,18 @@ BATCH CONTEXT PACKAGE ARTIFACT:
   no schema change, no repair, no rule creation
 - reference: references/batch_context.md
 
+READING GUIDE ARTIFACT:
+- output: references/reading_guide.md
+- timing: normally after translated batches are merged, before final HTML
+- source: compact guide context from the merged translated batch, terminology,
+  scene outline, and subtitle-label evidence
+- scope: reader-facing prose explaining how to read the screenplay edition,
+  screenplay-vs-subtitle expression differences, character/information setup,
+  and adaptation/compression tendencies
+- non-goals: no validation gate, no renderer inference, no mechanical subtitle
+  statistics report, no replacement for batch validation
+- reference: references/reading_guide.md
+
 When no reference subtitles are provided, terminology artifacts may include:
 - character names
 - place names
@@ -162,6 +175,7 @@ STAGE 6: FINALIZATION
 - cover with user-supplied Chinese title and translated physical title-page
   information when source rows are available
 - reading note for edition-wide conventions and professional terms
+- reading guide from references/reading_guide.md
 - final validation summary artifact
 
 -----

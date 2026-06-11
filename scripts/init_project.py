@@ -114,6 +114,7 @@ def main() -> int:
         "work/logs",
         "work/reports",
         "work/signal",
+        "references",
         "dist",
     ):
         (project_dir / relative).mkdir(parents=True, exist_ok=True)

@@ -90,6 +90,13 @@ The renderer may display this artifact, but must not infer title-page semantics
 from raw PDF rows. If the artifact is absent, the renderer may use only a
 minimal fallback title from the source title page and project config.
 
+## Reading Guide
+
+Project-specific reader guide prose lives in `references/reading_guide.md` next
+to `project.yaml` for full-project delivery. It is rendered near the front of
+the final HTML after it has been authored. See `references/reading_guide.md` for
+the content contract and context-package workflow.
+
 ## Page Mapping
 
 Keep page mapping explicit. Do not hide title-page offsets in code.
