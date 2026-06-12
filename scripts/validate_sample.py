@@ -468,7 +468,7 @@ def main() -> int:
     parser.add_argument(
         "--include-output-audit",
         action="store_true",
-        help="Also audit configured HTML/PDF outputs. Default validates Stage 1-2 only.",
+        help="Also audit configured reader outputs. Default validates Stage 1-2 only.",
     )
     args = parser.parse_args()
 

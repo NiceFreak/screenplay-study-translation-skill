@@ -323,6 +323,7 @@ def check_html(
 def check_pdf(
     project_file: Path, config: dict[str, Any], pdf_override: str | None
 ) -> list[Finding]:
+    # Legacy PDF output audit is retained for historical artifacts only.
     findings: list[Finding] = []
     outputs = section(config, "outputs")
     audit = section(config, "audit")
@@ -505,7 +506,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("project", type=Path, help="Path to project.yaml")
     parser.add_argument("--html", help="Override HTML output path")
-    parser.add_argument("--pdf", help="Override PDF output path")
+    parser.add_argument("--pdf", help="Override legacy PDF output path (deprecated)")
     parser.add_argument(
         "--display-page-start",
         type=int,

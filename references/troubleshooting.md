@@ -192,20 +192,20 @@ When a new failure mode is discovered:
 
 -----
 
-## PDF Output
+## Deprecated PDF Output
 
-### PDF Too Small Or Crowded
+### PDF Export Is Requested
 
-- Do not solve this by shrinking Chinese text into page-aligned source pages.
-- Page-aligned PDF is no longer a target.
-- If PDF output is reopened, use a reflowed A4 reading/print layout.
-- Preserve source positions with labels such as “原剧本第 X 页” instead of matching generated PDF pages to source PDF pages.
+- PDF output is deprecated in v0.3.
+- Use EPUB for mobile reading output.
+- Keep `scripts/export_pdf.py` only as historical reference; do not route normal
+  project delivery through it.
 
-### PDF Page Count Mismatch
+### Legacy PDF Artifact Exists
 
-- A reflowed reading PDF is expected to have its own page count.
-- Do not treat generated PDF page count mismatch as a failure unless the project explicitly defines a PDF-specific count contract.
-- Verify that source-location labels still identify the correct original screenplay pages.
+- Treat old PDF files as legacy artifacts, not supported current outputs.
+- Do not compare legacy generated PDF page counts with source screenplay PDF
+  page counts as a current validation requirement.
 
 -----
 

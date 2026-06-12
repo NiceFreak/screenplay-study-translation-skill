@@ -7,7 +7,7 @@ import argparse
 from pathlib import Path
 
 
-KEEP_REPORTS = {"sample-validation.txt", "subtitle-report.txt"}
+KEEP_REPORTS = {"cost-report.json", "sample-validation.txt", "subtitle-report.txt"}
 KEEP_DIST_NAMES = {"screenplay-study.html"}
 
 

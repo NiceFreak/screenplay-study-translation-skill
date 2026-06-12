@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Export a minimal A4 PDF from study HTML.
+"""DEPRECATED: PDF output is no longer a target. See references/decisions.md.
+
+This file is retained for reference only.
+
+Export a minimal A4 PDF from study HTML.
 
 This is a deterministic smoke/export interface, not the final typography engine.
 """

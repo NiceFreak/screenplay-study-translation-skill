@@ -39,16 +39,22 @@ Optional:
 
 3. OUTPUTS
 
-Primary output:
+Primary reader output:
 
 - dist/screenplay-study.html
+- dist/screenplay-study.epub
+
+Deprecated output:
+
+- PDF output is not supported in v0.3. `scripts/export_pdf.py` is retained as
+  historical reference only.
 
 Intermediate outputs:
 
 - extracted source markers
 - project-local terminology baseline
-- project-local reading guide
 - optional batch context packages
+- optional batch plan and cost observation reports
 - translation batches (JSON)
 - validation reports
 - optional observation-only diagnostic report
@@ -127,6 +133,9 @@ STAGE 4: TRANSLATION
   - label decisions should be made on expression units, not raw physical rows,
     when a spoken turn is split across multiple screenplay rows or subtitle
     events
+  - when a matched subtitle event is stable, optional subtitle timestamp fields
+    may be persisted on dialogue entries for later observation; this does not
+    imply scene alignment, difference typing, or timeline analysis
   - AI translates non-dialogue elements: action description, scene headings,
     parentheticals, format markers, and on-screen text
 - when subtitles are absent, AI translates all elements and quality depends on
@@ -142,17 +151,22 @@ BATCH CONTEXT PACKAGE ARTIFACT:
   no schema change, no repair, no rule creation
 - reference: references/batch_context.md
 
-READING GUIDE ARTIFACT:
-- output: references/reading_guide.md
-- timing: normally after translated batches are merged, before final HTML
-- source: compact guide context from the merged translated batch, terminology,
-  scene outline, and subtitle-label evidence
-- scope: reader-facing prose explaining how to read the screenplay edition,
-  screenplay-vs-subtitle expression differences, character/information setup,
-  and adaptation/compression tendencies
-- non-goals: no validation gate, no renderer inference, no mechanical subtitle
-  statistics report, no replacement for batch validation
-- reference: references/reading_guide.md
+BATCH PLAN ARTIFACT:
+- output: work/reports/batch-plan.json
+- scope: deterministic advisory 5-10 page range planning from local source
+  density and marker density
+- non-goals: no pipeline stage, no validation gate, no automatic continuation,
+  no runtime execution control
+- reference: references/workflow.md
+
+COST OBSERVATION ARTIFACT:
+- output: work/reports/cost-report.json
+- scope: read-only artifact-size and rough token observation for cost analysis
+- finalization: generated automatically by finalize_html.py after final HTML
+  audit passes
+- non-goals: no billing authority, no validation gate, no permission to reduce
+  current-range source text
+- reference: references/engineering.md
 
 When no reference subtitles are provided, terminology artifacts may include:
 - character names
@@ -171,11 +185,11 @@ STAGE 6: FINALIZATION
 
 - merged batch artifact
 - final HTML artifact
+- final EPUB artifact for mobile reading
 - navigation structure
 - cover with user-supplied Chinese title and translated physical title-page
   information when source rows are available
 - reading note for edition-wide conventions and professional terms
-- reading guide from references/reading_guide.md
 - final validation summary artifact
 
 -----
@@ -193,6 +207,7 @@ logs/
 extracted/
 dist/
 screenplay-study.html
+screenplay-study.epub
 
 -----
 
@@ -205,6 +220,7 @@ Validation reports can represent:
 - marker preservation
 - batch completeness
 - HTML navigation correctness
+- EPUB package readability and navigation correctness
 
 -----
 

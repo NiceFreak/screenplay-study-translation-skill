@@ -87,12 +87,14 @@ STOPWORDS = {
     "your",
 }
 MAX_SOURCE_ROWS = 160
-MAX_SUBTITLE_MATCHES = 90
-MAX_SUBTITLE_CANDIDATES_PER_UNIT = 3
+MAX_SUBTITLE_MATCHES = 60
+MAX_SUBTITLE_CANDIDATES_PER_UNIT = 2
+SUBTITLE_HIGH_CONFIDENCE_SCORE = 0.7
+SUBTITLE_MID_CONFIDENCE_SCORE = 0.6
 MAX_RELEVANT_TERMS = 80
 MAX_STYLE_TERMS = 20
-MAX_CONTINUITY_ENTRIES = 20
-MAX_WARNING_SIGNALS = 80
+MAX_CONTINUITY_ENTRIES = 8
+MAX_WARNING_SIGNALS = 40
 
 
 def load_json(path: Path) -> Any:
@@ -251,6 +253,7 @@ def signals_from_inventory(
     inventory: dict[str, Any], start: int, end: int, overlap: int
 ) -> dict[str, list[dict[str, Any]]]:
     signals: dict[str, list[dict[str, Any]]] = {}
+    counts: dict[str, int] = {}
     for source_key, output_key in (
         ("warning_signal", "warning_signal"),
         ("noise_signal", "noise_signal"),
@@ -267,7 +270,13 @@ def signals_from_inventory(
             and page_in_window(signal.get("display_page"), start, end, overlap)
         ]
         if selected:
+            counts[output_key] = len(selected)
             signals[output_key] = selected[:MAX_WARNING_SIGNALS]
+    if counts:
+        signals["summary"] = [
+            {"type": key, "count": value, "included": min(value, MAX_WARNING_SIGNALS)}
+            for key, value in sorted(counts.items())
+        ]
     return signals
 
 
@@ -337,17 +346,32 @@ def source_dialogue_units(source_entries: list[dict[str, Any]]) -> list[dict[str
     units: list[dict[str, Any]] = []
     current_speaker: str | None = None
     current: dict[str, Any] | None = None
+    previous_type: str | None = None
     for entry in source_entries:
         entry_type = entry.get("type")
         if entry_type == "character":
             current_speaker = str(entry.get("source") or "").strip() or None
             current = None
-            continue
-        if entry_type != "dialogue":
-            current = None
+            previous_type = entry_type
             continue
         text = str(entry.get("source") or "").strip()
+        dialogue_context = (
+            entry_type == "dialogue"
+            or (
+                entry_type in {"parenthetical", "action"}
+                and current_speaker is not None
+                and previous_type in {"character", "parenthetical"}
+                and bool(text)
+            )
+        )
+        if not dialogue_context:
+            current = None
+            if entry_type in {"scene_heading", "transition", "format_marker", "page_heading"}:
+                current_speaker = None
+            previous_type = str(entry_type or "")
+            continue
         if not text:
+            previous_type = str(entry_type or "")
             continue
         if current is None:
             current = {
@@ -364,6 +388,7 @@ def source_dialogue_units(source_entries: list[dict[str, Any]]) -> list[dict[str
         current["source"] = " ".join(
             part for part in (current.get("source"), text) if part
         )
+        previous_type = str(entry_type or "")
     return units
 
 
@@ -434,30 +459,113 @@ def subtitle_matches_for_units(
         candidates = [
             (score, index, event)
             for score, index, event in scored
-            if score >= 0.7
+            if score >= SUBTITLE_MID_CONFIDENCE_SCORE
         ]
         candidates.sort(key=lambda item: (-item[0], subtitle_event_sort_key(item[2])))
         compact_candidates = [
             {
                 "score": round(score, 3),
+                "match_confidence": (
+                    "high"
+                    if score >= SUBTITLE_HIGH_CONFIDENCE_SCORE
+                    else "low"
+                ),
                 "event_index": index,
                 "event": compact_subtitle_event(event),
             }
             for score, index, event in candidates[:MAX_SUBTITLE_CANDIDATES_PER_UNIT]
         ]
         emitted += len(compact_candidates)
-        matches.append(
-            {
-                "speaker": unit.get("speaker"),
-                "entry_ids": unit.get("entry_ids"),
-                "display_pages": unit.get("display_pages"),
-                "source": unit.get("source"),
-                "candidates": compact_candidates,
-            }
-        )
+        match = {
+            "speaker": unit.get("speaker"),
+            "entry_ids": unit.get("entry_ids"),
+            "display_pages": unit.get("display_pages"),
+            "source": unit.get("source"),
+        }
+        if compact_candidates:
+            match["candidates"] = compact_candidates
+        else:
+            match["candidate_count"] = 0
+        matches.append(match)
         if emitted >= MAX_SUBTITLE_MATCHES:
             break
     return matches
+
+
+def unique_subtitle_timestamps(matches: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    deferred: list[tuple[dict[str, Any], dict[str, Any]]] = []
+    event_counts: dict[int, int] = {}
+    for match in matches:
+        candidates = match.get("candidates")
+        if not isinstance(candidates, list) or len(candidates) != 1:
+            continue
+        candidate = candidates[0]
+        if candidate.get("match_confidence") != "high":
+            continue
+        event_index = candidate.get("event_index")
+        event = candidate.get("event")
+        if not isinstance(event_index, int) or not isinstance(event, dict):
+            continue
+        start = event.get("start")
+        end = event.get("end")
+        if not isinstance(start, (int, float)) or not isinstance(end, (int, float)):
+            continue
+        deferred.append((match, candidate))
+        event_counts[event_index] = event_counts.get(event_index, 0) + 1
+
+    timestamps: list[dict[str, Any]] = []
+    for match, candidate in deferred:
+        event_index = candidate["event_index"]
+        if event_counts[event_index] > 1:
+            continue
+        event = candidate["event"]
+        timestamps.append(
+            {
+                "entry_ids": match.get("entry_ids") or [],
+                "subtitle_event_index": event_index,
+                "subtitle_start": event["start"],
+                "subtitle_end": event["end"],
+            }
+        )
+    return timestamps
+
+
+def subtitle_timestamps(matches: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    unique = {
+        tuple(item.get("entry_ids") or []): item
+        for item in unique_subtitle_timestamps(matches)
+    }
+    timestamps: list[dict[str, Any]] = []
+    for match in matches:
+        entry_ids = match.get("entry_ids") or []
+        if not isinstance(entry_ids, list) or not entry_ids:
+            continue
+        unique_item = unique.get(tuple(entry_ids))
+        if unique_item is not None:
+            timestamps.append({**unique_item, "subtitle_match_confidence": "high"})
+            continue
+        candidates = match.get("candidates")
+        if not isinstance(candidates, list) or not candidates:
+            continue
+        candidate = candidates[0]
+        event_index = candidate.get("event_index")
+        event = candidate.get("event")
+        if not isinstance(event_index, int) or not isinstance(event, dict):
+            continue
+        start = event.get("start")
+        end = event.get("end")
+        if not isinstance(start, (int, float)) or not isinstance(end, (int, float)):
+            continue
+        timestamps.append(
+            {
+                "entry_ids": entry_ids,
+                "subtitle_event_index": event_index,
+                "subtitle_start": start,
+                "subtitle_end": end,
+                "subtitle_match_confidence": "low",
+            }
+        )
+    return timestamps
 
 
 def subtitle_candidates(
@@ -468,16 +576,27 @@ def subtitle_candidates(
     if not events:
         return {
             "available": False,
-            "dialogue_units": dialogue_units,
+            "summary": {"dialogue_unit_count": len(dialogue_units)},
             "advisory_matches": [],
+            "unique_subtitle_timestamps": [],
             "fallback_events": [],
             "selection_note": "subtitles not configured",
         }
     matches = subtitle_matches_for_units(events, dialogue_units, term_pairs)
     matched_count = sum(len(match.get("candidates") or []) for match in matches)
+    timestamps = unique_subtitle_timestamps(matches)
+    all_timestamps = subtitle_timestamps(matches)
     return {
         "available": True,
-        "dialogue_units": dialogue_units,
+        "summary": {
+            "dialogue_unit_count": len(dialogue_units),
+            "advisory_match_units_included": len(matches),
+            "matched_candidate_count": matched_count,
+            "unique_timestamp_count": len(timestamps),
+            "timestamp_count": len(all_timestamps),
+            "candidate_limit_total": MAX_SUBTITLE_MATCHES,
+            "candidate_limit_per_unit": MAX_SUBTITLE_CANDIDATES_PER_UNIT,
+        },
         "selection": {
             "method": "global_source_text_and_terminology_search",
             "event_count_total": len(events),
@@ -485,6 +604,8 @@ def subtitle_candidates(
             "confidence": "advisory",
         },
         "advisory_matches": matches,
+        "unique_subtitle_timestamps": timestamps,
+        "subtitle_timestamps": all_timestamps,
         "fallback_events": [],
         "selection_note": (
             "Subtitle candidates are searched across the full subtitle file "
@@ -622,10 +743,17 @@ def continuity_context(project_file: Path, start: int) -> dict[str, Any]:
     entries = payload.get("entries")
     if not isinstance(entries, list):
         entries = []
+    tail_entries = [entry for entry in entries[-MAX_CONTINUITY_ENTRIES:] if isinstance(entry, dict)]
+    tail_type_counts: dict[str, int] = {}
+    tail_speakers: list[str] = []
     compact_entries: list[dict[str, Any]] = []
-    for entry in entries[-MAX_CONTINUITY_ENTRIES:]:
-        if not isinstance(entry, dict):
-            continue
+    for entry in tail_entries:
+        entry_type = str(entry.get("type") or "")
+        tail_type_counts[entry_type] = tail_type_counts.get(entry_type, 0) + 1
+        if entry_type == "character":
+            speaker = str(entry.get("translation") or entry.get("source") or "").strip()
+            if speaker and speaker not in tail_speakers:
+                tail_speakers.append(speaker)
         compact_entries.append(
             {
                 "id": entry.get("id"),
@@ -639,6 +767,12 @@ def continuity_context(project_file: Path, start: int) -> dict[str, Any]:
     return {
         "previous_batch": str(path),
         "previous_batch_id": payload.get("batch_id"),
+        "summary": {
+            "total_entries": len(entries),
+            "tail_entries_included": len(compact_entries),
+            "tail_entry_types": tail_type_counts,
+            "tail_speakers": tail_speakers[:6],
+        },
         "entries": compact_entries,
     }
 

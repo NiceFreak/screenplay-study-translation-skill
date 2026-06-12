@@ -20,6 +20,19 @@ This skill should be maintained like software, not a pile of one-off scripts.
 - Do not let mechanical formatting debt accumulate. Run Ruff on touched scripts when practical.
 - Keep pure formatting changes separate from behavioral changes so reviews can distinguish style churn from logic changes.
 
+## Test And Fixture Data Compliance
+
+- Treat screenplay PDFs, subtitles, and existing translations as copyrighted
+  input materials.
+- Test data, mock data, fixture data, and example data must be isolated from
+  input materials.
+- Use only synthetic, abstract, or structurally representative content in
+  committed tests and fixtures.
+- Do not copy real character names, dialogue, scene descriptions, plot content,
+  subtitle text, or existing translation text into any test or fixture file,
+  regardless of fragment length.
+- Fixture files should explicitly declare that their content is synthetic.
+
 ## Hard-Coded Rule Guardrails
 
 - Do not promote a pattern observed in one screenplay into a universal rule without a validation check and a fixture.
@@ -52,8 +65,6 @@ cross-references:
   metadata, and inline markup roles.
 - `batch_context.md` owns compact per-batch context package structure and token
   cost-control constraints.
-- `reading_guide.md` owns optional project-local reading-guide purpose,
-  content rules, and compact guide-context workflow.
 - `terminology.md` owns English-to-Chinese translation choices and project-local
   terminology rules.
 - `validation.md` owns gates and checks, but should reference schema/taxonomy
@@ -89,11 +100,13 @@ These are the scripts an agent is most likely to use in a real project:
 - `scan_markers.py`: build source marker inventory
 - `parse_subtitles.py`: normalize optional subtitles
 - `draft_batch.py`: create placeholder translation batches from source lines and markers
+- `plan_batches.py`: suggest deterministic 5-10 page batch ranges without modifying project state
 - `package_batch_context.py`: create compact read-only current-batch context packages for low-token translation
-- `package_reading_guide_context.py`: create compact read-only final-project context for AI-authored reading guides
-- `merge_batches.py`: merge validated translated batches before final full-project HTML output
+- `cost_report.py`: create read-only artifact-size and rough token observation reports
+- `merge_batches.py`: merge validated translated batches before final full-project reader output
 - `build_html.py`: build batch or final HTML while preserving structured markers
 - `finalize_html.py`: validate final batch, build HTML, audit output, and optionally clean transient files
+- `export_epub.py`: export the final HTML reader edition as the supported mobile EPUB output
 - `clean_project.py`: clean transient preview outputs from a generated project after milestone output is built
 
 ### Validation And Audit Scripts
@@ -105,11 +118,12 @@ These scripts gate structure and output quality:
 - `audit.py`: validate source, HTML output, and optional displayed-page ranges
 - `stage_gate.py`: shared machine-readable pipeline gate checks used by workflow scripts
 
-### Legacy Or Experimental Output Scripts
+### Deprecated Output Scripts
 
-These scripts are not part of the v0.1 HTML-first target. Keep them out of the normal user workflow unless the project deliberately reopens that output path:
+These scripts are not part of the normal user workflow. Keep them only for
+historical reference and legacy diagnostics:
 
-- `export_pdf.py`: deterministic PDF smoke/export interface retained for experiments
+- `export_pdf.py`: deprecated PDF export reference retained without deletion
 
 ### Development Fixture Scripts
 
@@ -168,6 +182,13 @@ Do not use `--allow-missing-inputs` for real project delivery audits.
 - During translation, prefer the current batch context package over reading
   full upstream artifacts. Escalate to full files only for a specific current
   batch ambiguity.
+- `finalize_html.py` runs `cost_report.py` automatically after final HTML audit
+  passes, before EPUB export. The report includes rough artifact-size/token observation and a
+  project-level USD estimate from the detected or default model pricing
+  snapshot. It is not billing data, a validation gate, or permission to reduce
+  source context.
+- Use `plan_batches.py` only for advisory range planning. It must not override
+  runtime batch execution constraints.
 - For long translation runs, resume one validated batch step at a time instead
   of running an unbounded multi-batch execution chain. If the user explicitly
   authorizes continuous batch execution, continue only one validated batch at a

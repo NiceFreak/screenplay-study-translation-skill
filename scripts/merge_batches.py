@@ -14,6 +14,12 @@ from typing import Any
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
 BATCH_RE = re.compile(r"^translated-p(?P<start>\d+)(?:-(?P<end>\d+))?\.json$")
+TIMESTAMP_FIELDS = (
+    "subtitle_event_index",
+    "subtitle_start",
+    "subtitle_end",
+    "subtitle_match_confidence",
+)
 
 
 def batch_key(path: Path) -> tuple[int, int, str]:
@@ -33,6 +39,77 @@ def load_batch(path: Path) -> dict[str, Any]:
     if not isinstance(entries, list):
         raise ValueError(f"{path}: entries must be list")
     return batch
+
+
+def context_dir_for_batches(paths: list[Path], batch_dir: Path | None) -> Path | None:
+    if batch_dir is not None:
+        return batch_dir.parent / "context"
+    if paths and paths[0].parent.name == "batches":
+        return paths[0].parent.parent / "context"
+    return None
+
+
+def load_timestamp_index(context_dir: Path | None) -> dict[str, dict[str, Any]]:
+    if context_dir is None or not context_dir.exists():
+        return {}
+
+    timestamps: dict[str, dict[str, Any]] = {}
+    for path in sorted(context_dir.glob("batch-context-p*.json")):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        candidates = payload.get("subtitle_candidates")
+        if not isinstance(candidates, dict):
+            continue
+        source_items = (
+            candidates.get("subtitle_timestamps")
+            or candidates.get("unique_subtitle_timestamps")
+            or []
+        )
+        for item in source_items:
+            if not isinstance(item, dict):
+                continue
+            event_index = item.get("subtitle_event_index")
+            start = item.get("subtitle_start")
+            end = item.get("subtitle_end")
+            entry_ids = item.get("entry_ids")
+            if (
+                not isinstance(event_index, int)
+                or not isinstance(start, (int, float))
+                or not isinstance(end, (int, float))
+                or not isinstance(entry_ids, list)
+            ):
+                continue
+            timestamp = {
+                "subtitle_event_index": event_index,
+                "subtitle_start": start,
+                "subtitle_end": end,
+            }
+            confidence = item.get("subtitle_match_confidence")
+            if isinstance(confidence, str) and confidence in {"high", "low"}:
+                timestamp["subtitle_match_confidence"] = confidence
+            for entry_id in entry_ids:
+                if isinstance(entry_id, str) and entry_id not in timestamps:
+                    timestamps[entry_id] = timestamp
+    return timestamps
+
+
+def apply_subtitle_timestamps(
+    entry: dict[str, Any], timestamps: dict[str, dict[str, Any]]
+) -> None:
+    if not timestamps or entry.get("type") != "dialogue":
+        return
+    if entry.get("subtitle_label") not in {"字幕匹配", "字幕差异"}:
+        return
+    entry_id = entry.get("id")
+    if not isinstance(entry_id, str):
+        return
+    timestamp = timestamps.get(entry_id)
+    if timestamp is None:
+        return
+    timestamp_fields = TIMESTAMP_FIELDS[:3]
+    present = [field for field in timestamp_fields if field in entry]
+    if present and any(entry.get(field) != timestamp[field] for field in present):
+        raise ValueError(f"timestamp mismatch for entry {entry_id}")
+    entry.update(timestamp)
 
 
 def merge_batches(paths: list[Path]) -> dict[str, Any]:
@@ -64,7 +141,7 @@ def merge_batches(paths: list[Path]) -> dict[str, Any]:
             if entry_id in seen_ids:
                 raise ValueError(f"{path}: duplicate entry id {entry_id}")
             seen_ids.add(entry_id)
-            entries.append(entry)
+            entries.append(dict(entry))
 
     result: dict[str, Any] = {
         "version": 1,
@@ -79,6 +156,16 @@ def merge_batches(paths: list[Path]) -> dict[str, Any]:
     if isinstance(front_matter, list) and front_matter:
         result["front_matter"] = front_matter
     return result
+
+
+def merge_batches_with_context(
+    paths: list[Path], context_dir: Path | None
+) -> dict[str, Any]:
+    merged = merge_batches(paths)
+    timestamps = load_timestamp_index(context_dir)
+    for entry in merged["entries"]:
+        apply_subtitle_timestamps(entry, timestamps)
+    return merged
 
 
 def discover_batches(batch_dir: Path) -> list[Path]:
@@ -226,7 +313,7 @@ def main() -> int:
         return 1
 
     try:
-        merged = merge_batches(paths)
+        merged = merge_batches_with_context(paths, context_dir_for_batches(paths, batch_dir))
     except ValueError as exc:
         print(f"FAIL merge_batches {exc}", file=sys.stderr)
         return 1

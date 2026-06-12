@@ -1,6 +1,6 @@
 ---
 name: screenplay-study-translation
-description: Translate, annotate, audit, and export HTML screenplay study editions from screenplay PDFs with optional reference subtitles; use for bilingual screenplay translation, subtitle alignment, scene-number reconstruction, screenplay terminology, and static HTML study editions.
+description: Translate, annotate, audit, and export HTML/EPUB screenplay study editions from screenplay PDFs with optional reference subtitles; use for bilingual screenplay translation, subtitle alignment, scene-number reconstruction, screenplay terminology, and static HTML study editions.
 ---
 
 # Screenplay Study Translation — Knowledge Reference
@@ -16,6 +16,21 @@ It does NOT define pipeline stages or AI behavior rules.
 
 ## 1. Translation Principles
 
+- Activation intent "生成预览" or "先给我第一批预览" means: initialize the
+  project, prepare required source/terminology/front-matter/reader-note
+  artifacts, translate only the first batch, generate an HTML preview, and stop
+  for user review.
+- Activation intent "翻译下一批" means: translate exactly one next batch and
+  stop after validation and preview unless the user separately authorizes
+  continuous batch execution.
+- Activation intent "生成成品 HTML" means: merge validated batches, build the
+  final HTML, run audit, and stop when the reader HTML is ready.
+- Activation intent "导出 EPUB" means: export the final HTML as EPUB after the
+  final HTML audit passes.
+- Activation intent "预览通过，继续跑完整本" means: the first preview has been
+  accepted and the user explicitly authorizes continuous batch execution under
+  `AI_AGENT_CONTRACT.md`; continue batch by batch until final HTML and EPUB
+  delivery unless a required stop condition occurs.
 - Preserve the screenplay as a document, not only as dialogue.
 - When reference subtitles are provided, use subtitle content directly for
   dialogue translations. Follow `references/subtitle_alignment.md` for label
@@ -93,18 +108,17 @@ Audit all markers against output before finalization.
 
 ## 5. Output Principles
 
-- Remove task labels, duplicate indexes, debug notes, and workflow artifacts from final HTML output.
+- Remove task labels, duplicate indexes, debug notes, and workflow artifacts from final reader output.
 - HTML must include a collapsible scene index with working navigation links.
 - Generated HTML should restore confirmed source-visible screenplay formatting
   and structure after it has been captured in batch JSON, markers, layout
   metadata, or inline markup. Do not flatten source formatting signals into
   ordinary prose when source evidence shows they affect how the screenplay reads
   on the page.
-- Do not produce page-aligned PDFs. If PDF output is needed, prefer a reflowed A4 reading edition that labels source locations as “原剧本第 X 页”.
+- Do not produce PDF output. PDF is deprecated in v0.3; EPUB is the supported
+  mobile reading output. `scripts/export_pdf.py` is retained only as historical
+  reference.
 - Audit and final outputs are different presentations of the same formal translation: audit may show engineering metadata; final output hides technical noise.
-- For full-project delivery, include a project-local `references/reading_guide.md`
-  as a reader guide near the front of the HTML. The guide is AI-authored project
-  prose, not renderer inference or a subtitle statistics report.
 
 -----
 
@@ -122,7 +136,7 @@ Before finalizing, verify:
 - no raw screenplay terms appear without translation or explanation
 - HTML scene index links resolve
 - work batches live under `work/batches/`
-- final HTML lives under `dist/`
+- final HTML and EPUB live under `dist/`
 
 -----
 
@@ -146,7 +160,6 @@ Read only what the task needs:
 **Translation and output:**
 
 - `references/batch_context.md` — compact current-batch context packages
-- `references/reading_guide.md` — reader guide artifact and compact guide-context workflow
 - `references/batch_schema.md` — translation batch format and validation
 - `references/terminology.md` — screenplay, camera, and format terms
 - `references/subtitle_alignment.md` — subtitle alignment (when subtitles are present)

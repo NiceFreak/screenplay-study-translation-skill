@@ -25,6 +25,8 @@ class Check(TypedDict):
 
 class SmokeCheck(Check, total=False):
     expect_failure: bool
+    skip: bool
+    skip_reason: str
 
 
 def json_fixture(value: object) -> str:
@@ -146,14 +148,19 @@ def main() -> int:
     invalid_merge_batch_dir = invalid_merge_project_dir / "work" / "batches"
     merge_markers = merge_project_dir / "work" / "source-markers.json"
     merge_html = merge_project_dir / "dist" / "screenplay-study.html"
+    merge_epub = merge_project_dir / "dist" / "screenplay-study.epub"
     merge_project = merge_project_dir / "project.yaml"
     merge_batch_first = merge_batch_dir / "translated-p001-001.json"
     merge_batch_second = merge_batch_dir / "translated-p002-002.json"
     merged_batch = merge_batch_dir / "translated-p001-002.json"
+    merge_context_dir = merge_project_dir / "work" / "context"
+    merge_context = merge_context_dir / "batch-context-p001-001.json"
+    merge_subtitles = merge_project_dir / "work" / "subtitles.json"
     merge_validation_log = merge_project_dir / "work" / "logs" / "merge-validation.json"
     invalid_merge_batch_first = invalid_merge_batch_dir / "translated-p001-001.json"
     invalid_merge_batch_second = invalid_merge_batch_dir / "translated-p002-002.json"
     invalid_merged_batch = invalid_merge_batch_dir / "translated-p001-002.json"
+    invalid_subtitle_timestamp_batch = tmp_dir / "invalid-subtitle-timestamp.json"
     invalid_merge_validation_log = (
         invalid_merge_project_dir / "work" / "logs" / "merge-validation.json"
     )
@@ -202,6 +209,7 @@ def main() -> int:
                 "outputs:",
                 f"  marker_inventory: {pdf_scan_inventory}",
                 "  html: null",
+                "  epub: null",
                 "  pdf: null",
                 "",
                 "page_mapping:",
@@ -227,7 +235,9 @@ def main() -> int:
                 "outputs:",
                 f"  marker_inventory: {batch_markers}",
                 f"  html: {batch_html}",
-                f"  pdf: {batch_pdf}",
+                "  epub: null",
+                # SKIP: PDF output deprecated in v0.3. See references/decisions.md.
+                "  pdf: null",
                 "",
                 "audit:",
                 "  require_subtitles: false",
@@ -245,6 +255,7 @@ def main() -> int:
         "work/batches/draft.json",
         "work/batches/translated-p001-002.json",
         "work/batches/translated-p001-004.json",
+        "work/reports/cost-report.json",
         "work/reports/sample-validation.txt",
         "work/reports/temp.txt",
         "dist/screenplay-study.html",
@@ -274,6 +285,7 @@ def main() -> int:
                 "  source_lines: work/source-lines.json",
                 "  marker_inventory: work/source-markers.json",
                 "  html: dist/screenplay-study.html",
+                "  epub: dist/screenplay-study.epub",
                 "  pdf: null",
                 "",
                 "page_mapping:",
@@ -310,8 +322,8 @@ def main() -> int:
         """
 | English | Chinese | Notes |
 |---------|---------|-------|
-| Paris | 巴黎 | 
-| Casey | 凯西 | 
+| TERM_ALPHA | 术语甲 |
+| PERSON_ALPHA | 角色甲 |
 """,
         encoding="utf-8",
     )
@@ -332,7 +344,7 @@ def main() -> int:
                         "start": 1.0,
                         "end": 2.5,
                         "type": "dialogue",
-                        "text": "凯西，快走！",
+                        "text": "角色甲，执行测试指令！",
                     },
                 ],
             }
@@ -367,8 +379,8 @@ def main() -> int:
                         "type": "dialogue",
                         "pdf_page": 1,
                         "display_page": 1,
-                        "source": "Paris is warm.",
-                        "translation": "巴黎很温暖。",
+                        "source": "TERM_ALPHA is active.",
+                        "translation": "术语甲已激活。",
                     },
                     {
                         "id": "t002",
@@ -396,8 +408,8 @@ def main() -> int:
                         "type": "dialogue",
                         "pdf_page": 1,
                         "display_page": 1,
-                        "source": "Paris is warm.",
-                        "translation": "巴里很温暖。",
+                        "source": "TERM_ALPHA is active.",
+                        "translation": "术语乙已激活。",
                     },
                     {
                         "id": "t004",
@@ -475,8 +487,8 @@ def main() -> int:
                         "type": "scene_heading",
                         "pdf_page": 1,
                         "display_page": 1,
-                        "source": "INT. ROOM - NIGHT",
-                        "translation": "INT. 房间 - 夜",
+                        "source": "INT. TEST LOCATION - NIGHT",
+                        "translation": "INT. 测试地点 - 夜",
                     },
                     {
                         "id": "t009",
@@ -484,7 +496,7 @@ def main() -> int:
                         "pdf_page": 1,
                         "display_page": 1,
                         "source": "CUT TO:",
-                        "translation": "CUT TO: 街道",
+                        "translation": "CUT TO: 测试区域",
                     },
                 ],
             }
@@ -504,8 +516,8 @@ def main() -> int:
                         "type": "scene_heading",
                         "pdf_page": 1,
                         "display_page": 1,
-                        "source": "INT. ROOM - NIGHT",
-                        "translation": "内景。__房间__ - 夜",
+                        "source": "INT. TEST LOCATION - NIGHT",
+                        "translation": "内景。__测试地点__ - 夜",
                         "markers": [{"type": "scene_no", "position": "left"}],
                     }
                 ],
@@ -550,6 +562,7 @@ def main() -> int:
                 "",
                 "outputs:",
                 "  html: null",
+                "  epub: null",
                 "  pdf: null",
                 "",
             ]
@@ -569,8 +582,8 @@ def main() -> int:
                         "type": "action",
                         "pdf_page": 1,
                         "display_page": 1,
-                        "source": "The room waits. *",
-                        "translation": "房间静静等待。",
+                        "source": "Synthetic action fragment waits. *",
+                        "translation": "合成动作片段等待。",
                     }
                 ],
             }
@@ -590,13 +603,13 @@ def main() -> int:
                     {
                         "pdf_page": 1,
                         "display_page": 1,
-                        "text": "INT. ROOM - DAY",
+                        "text": "INT. TEST LOCATION - DAY",
                         "zone": "body",
                     },
                     {
                         "pdf_page": 1,
                         "display_page": 1,
-                        "text": "Casey says, 'I don't know.'",
+                        "text": "Character Alpha says a synthetic line.",
                         "zone": "body",
                     },
                 ],
@@ -610,8 +623,8 @@ def main() -> int:
                 "version": 1,
                 "source": "generated",
                 "events": [
-                    {"start": 0.0, "end": 1.0, "text": "凯西，不要走！"},
-                    {"start": 1.1, "end": 2.0, "text": "这是一个紧张的时刻。"},
+                    {"start": 0.0, "end": 1.0, "text": "角色甲，执行测试指令！"},
+                    {"start": 1.1, "end": 2.0, "text": "这是一个合成测试时刻。"},
                 ],
             }
         ),
@@ -632,13 +645,13 @@ def main() -> int:
                     {
                         "pdf_page": 1,
                         "display_page": 1,
-                        "text": "EXT. STREET - NIGHT",
+                        "text": "EXT. TEST AREA - NIGHT",
                         "zone": "body",
                     },
                     {
                         "pdf_page": 1,
                         "display_page": 1,
-                        "text": "He walks alone.",
+                        "text": "A synthetic figure crosses the test area.",
                         "zone": "body",
                     },
                 ],
@@ -669,6 +682,7 @@ def main() -> int:
                 "  source_lines: work/source-lines.json",
                 "  marker_inventory: work/source-markers.json",
                 "  html: dist/screenplay-study.html",
+                "  epub: dist/screenplay-study.epub",
                 "  pdf: null",
                 "",
                 "page_mapping:",
@@ -690,17 +704,22 @@ def main() -> int:
                     {
                         "start": 2.0,
                         "end": 4.0,
-                        "text": "圣母计划到底是什么 What's Project Hail Mary exactly?",
+                        "text": "合成任务甲到底是什么 What is Synthetic Task Alpha exactly?",
                     },
                     {
                         "start": 12.0,
                         "end": 14.0,
-                        "text": "字幕把这句更长的对白压缩了 The subtitles compress this longer guide line.",
+                        "text": "字幕压缩这句较长的合成对白 The subtitles compress this longer synthetic line.",
                     },
                     {
                         "start": 820.0,
                         "end": 822.0,
-                        "text": "这句补充对白显示成片位置很靠后 This additional screenplay guide line appears later.",
+                        "text": "这句补充合成对白显示时间较靠后 This additional synthetic line appears later.",
+                    },
+                    {
+                        "start": 900.0,
+                        "end": 901.5,
+                        "text": "This synthetic misclassified line should match subtitles.",
                     },
                 ],
             }
@@ -711,13 +730,30 @@ def main() -> int:
         "\n".join(
             [
                 "project:",
-                "  title: Project: Hail Mary",
-                "  chinese_title: 挽救计划",
+                "  title: Synthetic Case Title",
+                "  chinese_title: 合成案例标题",
                 "",
                 "outputs:",
                 "  subtitles_json: work/subtitles.json",
                 "",
             ]
+        ),
+        encoding="utf-8",
+    )
+    (reflow_project_dir / "work" / "logs").mkdir(parents=True)
+    (reflow_project_dir / "work" / "logs" / "stage-1-2-findings.json").write_text(
+        json_fixture(
+            {
+                "version": 1,
+                "stage": "STAGE 1-2",
+                "overall_state": "PASS",
+                "records": [],
+                "signal_counts": {
+                    "structural_signal": 0,
+                    "warning_signal": 0,
+                    "noise_signal": 0,
+                },
+            }
         ),
         encoding="utf-8",
     )
@@ -740,25 +776,13 @@ def main() -> int:
     (reflow_project_dir / "references" / "front_matter.md").write_text(
         "\n".join(
             [
-                "剧本名：__挽救计划__（原文：PROJECT: HAIL MARY）",
+                "剧本名：__合成案例标题__（原文：SYNTHETIC CASE TITLE）",
                 "",
-                "编剧：__德鲁·戈达德__（Drew Goddard）",
+                "编剧：__作者甲__（Author Alpha）",
                 "",
-                "改编自__安迪·威尔__（Andy Weir）的小说",
+                "改编自__作者乙__（Author Beta）的合成文本",
                 "",
                 "稿本日期：2022 年 12 月 15 日",
-            ]
-        ),
-        encoding="utf-8",
-    )
-    (reflow_project_dir / "references" / "reading_guide.md").write_text(
-        "\n".join(
-            [
-                "这份导读来自剧本与字幕的综合阅读，不是逐条字幕统计。",
-                "",
-                "### 阅读路径",
-                "",
-                "- 剧本保留了更多铺垫；成片字幕更强调即时剧情推进。",
             ]
         ),
         encoding="utf-8",
@@ -772,7 +796,7 @@ def main() -> int:
                     {
                         "pdf_page": 1,
                         "display_page": 0,
-                        "text": "PROJECT: HAIL MARY",
+                        "text": "SYNTHETIC CASE TITLE",
                         "zone": "body",
                     },
                     {
@@ -784,10 +808,83 @@ def main() -> int:
                     {
                         "pdf_page": 1,
                         "display_page": 0,
-                        "text": "Drew Goddard",
+                        "text": "Author Alpha",
                         "zone": "body",
                     },
+                    {
+                        "pdf_page": 13,
+                        "display_page": 12,
+                        "text": "INT. TEST LOCATION - DAY",
+                        "zone": "body",
+                        "x": 72.0,
+                    },
+                    {
+                        "pdf_page": 13,
+                        "display_page": 12,
+                        "text": "CHARACTER_ALPHA",
+                        "zone": "body",
+                        "x": 240.0,
+                    },
+                    {
+                        "pdf_page": 13,
+                        "display_page": 12,
+                        "text": "What is Synthetic Task Alpha?",
+                        "zone": "body",
+                        "x": 180.0,
+                    },
+                    {
+                        "pdf_page": 13,
+                        "display_page": 12,
+                        "text": "exactly?",
+                        "zone": "body",
+                        "x": 180.0,
+                    },
+                    {
+                        "pdf_page": 13,
+                        "display_page": 12,
+                        "text": "MYSTERY",
+                        "zone": "body",
+                        "x": 240.0,
+                    },
+                    {
+                        "pdf_page": 13,
+                        "display_page": 12,
+                        "text": "(This synthetic misclassified line should match subtitles.)",
+                        "zone": "body",
+                        "x": 180.0,
+                    },
+                    {
+                        "pdf_page": 13,
+                        "display_page": 12,
+                        "text": "CHARACTER_BETA",
+                        "zone": "body",
+                        "x": 240.0,
+                    },
+                    {
+                        "pdf_page": 13,
+                        "display_page": 12,
+                        "text": "The subtitles compress this longer synthetic line.",
+                        "zone": "body",
+                        "x": 180.0,
+                    },
+                    {
+                        "pdf_page": 13,
+                        "display_page": 12,
+                        "text": "This additional synthetic line appears later.",
+                        "zone": "body",
+                        "x": 180.0,
+                    },
                 ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (reflow_project_dir / "work" / "source-markers.json").write_text(
+        json_fixture(
+            {
+                "version": 1,
+                "source": {"screenplay_pdf": "fixture.pdf"},
+                "markers": [],
             }
         ),
         encoding="utf-8",
@@ -805,41 +902,44 @@ def main() -> int:
                         "type": "scene_heading",
                         "pdf_page": 13,
                         "display_page": 12,
-                        "source": "INT. CLASSROOM - DAY",
-                        "translation": "内景。教室 - 日",
+                        "source": "INT. TEST LOCATION - DAY",
+                        "translation": "内景。测试地点 - 日",
                     },
                     {
                         "id": "r001",
                         "type": "action",
                         "pdf_page": 13,
                         "display_page": 12,
-                        "source": "She drops a binder. The title reads:",
-                        "translation": "她把一个活页夹扔到他桌上。我们看见标题：“《",
+                        "source": "A synthetic object lands. The label reads:",
+                        "translation": "一个合成道具落下。标签写着：“《",
                     },
                     {
                         "id": "r002",
                         "type": "action",
                         "pdf_page": 13,
                         "display_page": 12,
-                        "source": "Water-Based Assumption Analysis",
-                        "translation": "水基假设分析与进化模型预期重校准》。”",
+                        "source": "Synthetic Continuity Check",
+                        "translation": "合成连续性检查》。”",
                     },
                     {
                         "id": "r003",
                         "type": "character",
                         "pdf_page": 13,
                         "display_page": 12,
-                        "source": "GRACE",
-                        "translation": "__格雷斯__",
+                        "source": "CHARACTER_ALPHA",
+                        "translation": "__角色甲__",
                     },
                     {
                         "id": "r004",
                         "type": "dialogue",
                         "pdf_page": 13,
                         "display_page": 12,
-                        "source": "What's Project Hail Mary?",
-                        "translation": "__圣母计划__",
+                        "source": "What is Synthetic Task Alpha?",
+                        "translation": "__合成任务甲__",
                         "subtitle_label": "字幕匹配",
+                        "subtitle_event_index": 0,
+                        "subtitle_start": 2.0,
+                        "subtitle_end": 4.0,
                     },
                     {
                         "id": "r005",
@@ -849,22 +949,25 @@ def main() -> int:
                         "source": "exactly?",
                         "translation": "到底是什么？",
                         "subtitle_label": "字幕匹配",
+                        "subtitle_event_index": 0,
+                        "subtitle_start": 2.0,
+                        "subtitle_end": 4.0,
                     },
                     {
                         "id": "r006",
                         "type": "character",
                         "pdf_page": 13,
                         "display_page": 12,
-                        "source": "STRATT",
-                        "translation": "__史特拉__",
+                        "source": "CHARACTER_BETA",
+                        "translation": "__角色乙__",
                     },
                     {
                         "id": "r007",
                         "type": "dialogue",
                         "pdf_page": 13,
                         "display_page": 12,
-                        "source": "The subtitles compress this longer guide line.",
-                        "translation": "字幕把这句更长的对白压缩了。",
+                        "source": "The subtitles compress this longer synthetic line.",
+                        "translation": "字幕压缩这句较长的合成对白。",
                         "subtitle_label": "字幕差异",
                     },
                     {
@@ -872,8 +975,8 @@ def main() -> int:
                         "type": "dialogue",
                         "pdf_page": 13,
                         "display_page": 12,
-                        "source": "This additional screenplay guide line appears later.",
-                        "translation": "这句补充对白显示成片位置很靠后。",
+                        "source": "This additional synthetic line appears later.",
+                        "translation": "这句补充合成对白显示时间较靠后。",
                         "subtitle_label": "字幕未见",
                     },
                 ],
@@ -883,6 +986,7 @@ def main() -> int:
     )
 
     merge_batch_dir.mkdir(parents=True)
+    merge_context_dir.mkdir(parents=True)
     (merge_project_dir / "work").mkdir(exist_ok=True)
     (merge_project_dir / "dist").mkdir()
     invalid_merge_batch_dir.mkdir(parents=True)
@@ -897,15 +1001,16 @@ def main() -> int:
                 "",
                 "inputs:",
                 "  screenplay_pdf: missing-source.pdf",
-                "  subtitles: null",
+                f"  subtitles: {merge_subtitles}",
                 "",
                 "outputs:",
                 f"  marker_inventory: {merge_markers}",
                 f"  html: {merge_html}",
+                f"  epub: {merge_epub}",
                 "  pdf: null",
                 "",
                 "audit:",
-                "  require_subtitles: false",
+                "  require_subtitles: true",
                 "  require_structured_markers: true",
                 "  paper_size: A4",
                 "",
@@ -948,15 +1053,15 @@ def main() -> int:
                 "version": 1,
                 "batch_id": "translated-p001-001",
                 "source_pages": {"start": 1, "end": 1},
-                "has_subtitles": False,
+                "has_subtitles": True,
                 "front_matter": [
                     {
                         "id": "front-001",
                         "type": "note",
                         "pdf_page": 1,
                         "display_page": 0,
-                        "source": "Written by CASEY",
-                        "translation": "编剧：__凯西__",
+                        "source": "Written by AUTHOR_ALPHA",
+                        "translation": "编剧：__作者甲__",
                     }
                 ],
                 "entries": [
@@ -965,8 +1070,8 @@ def main() -> int:
                         "type": "scene_heading",
                         "pdf_page": 2,
                         "display_page": 1,
-                        "source": "INT. ROOM - NIGHT",
-                        "translation": "内景。__房间__ - 夜",
+                        "source": "INT. TEST LOCATION - NIGHT",
+                        "translation": "内景。__测试地点__ - 夜",
                         "markers": [
                             {"type": "scene_no", "text": "1", "position": "left"},
                             {"type": "scene_no", "text": "1", "position": "right"},
@@ -974,13 +1079,48 @@ def main() -> int:
                     },
                     {
                         "id": "p001-e002",
-                        "type": "action",
+                        "type": "dialogue",
                         "pdf_page": 2,
                         "display_page": 1,
-                        "source": "A knock lands.",
-                        "translation": "传来一记**敲门声**。",
+                        "source": "Synthetic cue lands.",
+                        "translation": "出现一记**合成提示音**。",
+                        "subtitle_label": "字幕匹配",
                     },
                 ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    merge_subtitles.write_text(
+        json_fixture(
+            {
+                "version": 1,
+                "events": [
+                    {
+                        "start": 65.2,
+                        "end": 66.4,
+                        "text": "出现一记合成提示音。",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    merge_context.write_text(
+        json_fixture(
+            {
+                "subtitle_candidates": {
+                    "subtitle_timestamps": [
+                        {
+                            "entry_ids": ["p001-e002"],
+                            "subtitle_event_index": 0,
+                            "subtitle_start": 65.2,
+                            "subtitle_end": 66.4,
+                            "subtitle_match_confidence": "low",
+                        }
+                    ],
+                    "unique_subtitle_timestamps": [],
+                }
             }
         ),
         encoding="utf-8",
@@ -1031,6 +1171,31 @@ def main() -> int:
         ),
         encoding="utf-8",
     )
+    invalid_subtitle_timestamp_batch.write_text(
+        json_fixture(
+            {
+                "version": 1,
+                "batch_id": "invalid-subtitle-timestamp",
+                "source_pages": {"start": 1, "end": 1},
+                "has_subtitles": True,
+                "entries": [
+                    {
+                        "id": "p001-e001",
+                        "type": "dialogue",
+                        "pdf_page": 2,
+                        "display_page": 1,
+                        "source": "Unseen line.",
+                        "translation": "未见对白。",
+                        "subtitle_label": "字幕未见",
+                        "subtitle_event_index": 0,
+                        "subtitle_start": 1.0,
+                        "subtitle_end": 2.0,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
 
     assert_ass_annotation_script = tmp_dir / "assert_ass_annotation_type.py"
     assert_ass_annotation_script.write_text(
@@ -1066,16 +1231,17 @@ def main() -> int:
                 str(SCRIPTS_DIR / "build_html.py"),
                 str(SCRIPTS_DIR / "clean_project.py"),
                 str(SCRIPTS_DIR / "confirm_stage2.py"),
+                str(SCRIPTS_DIR / "cost_report.py"),
                 str(SCRIPTS_DIR / "draft_batch.py"),
                 str(SCRIPTS_DIR / "extract_pdf.py"),
-                str(SCRIPTS_DIR / "export_pdf.py"),
+                str(SCRIPTS_DIR / "export_epub.py"),
                 str(SCRIPTS_DIR / "finalize_html.py"),
                 str(SCRIPTS_DIR / "init_project.py"),
                 str(SCRIPTS_DIR / "make_pdf_fixture.py"),
                 str(SCRIPTS_DIR / "make_sample_batch.py"),
                 str(SCRIPTS_DIR / "merge_batches.py"),
                 str(SCRIPTS_DIR / "package_batch_context.py"),
-                str(SCRIPTS_DIR / "package_reading_guide_context.py"),
+                str(SCRIPTS_DIR / "plan_batches.py"),
                 str(SCRIPTS_DIR / "parse_subtitles.py"),
                 str(SCRIPTS_DIR / "scan_markers.py"),
                 str(SCRIPTS_DIR / "smoke.py"),
@@ -1085,6 +1251,18 @@ def main() -> int:
                 str(SCRIPTS_DIR / "validate_batch.py"),
                 str(SCRIPTS_DIR / "validate_sample.py"),
             ],
+        },
+        {
+            "name": "py_compile_export_pdf",
+            "command": [
+                python,
+                "-m",
+                "py_compile",
+                str(SCRIPTS_DIR / "export_pdf.py"),
+            ],
+            # SKIP: PDF output deprecated in v0.3. See references/decisions.md.
+            "skip": True,
+            "skip_reason": "PDF output deprecated in v0.3. See references/decisions.md.",
         },
         {
             "name": "pdf_content_stream_exact_length",
@@ -1226,7 +1404,7 @@ def main() -> int:
                         "&&",
                         "grep",
                         "-q",
-                        "'INFO subtitle.term_candidate count=2 text=凯西'",
+                        "'INFO subtitle.term_candidate count=2 text=术语甲'",
                         str(subtitle_report),
                     ]
                 ),
@@ -1510,37 +1688,129 @@ def main() -> int:
                     "ok=data.get('kind')=='translation_batch_context' "
                     "and data.get('source_entries') "
                     "and data.get('subtitle_candidates', {}).get('available') is True "
+                    "and 'summary' in data.get('subtitle_candidates', {}) "
+                    "and 'unique_subtitle_timestamps' in data.get('subtitle_candidates', {}) "
+                    "and 'subtitle_timestamps' in data.get('subtitle_candidates', {}) "
                     "and 'source_rows_excerpt' not in data; "
                     "raise SystemExit(0 if ok else 'batch context package contract failed')"
                 ),
             ],
         },
         {
-            "name": "package_reading_guide_context",
+            "name": "confirm_reflow_stage2",
             "command": [
                 python,
-                str(SCRIPTS_DIR / "package_reading_guide_context.py"),
-                str(sample_project),
-                "--batch",
-                str(sample_draft_page_batch),
-                "--output",
-                str(tmp_dir / "reading-guide-context.json"),
+                str(SCRIPTS_DIR / "confirm_stage2.py"),
+                str(reflow_project),
+                "--decision",
+                "Reflow fixture uses a preconfirmed empty Stage 2 signal log.",
             ],
         },
         {
-            "name": "assert_reading_guide_context",
+            "name": "package_reflow_batch_context",
+            "command": [
+                python,
+                str(SCRIPTS_DIR / "package_batch_context.py"),
+                str(reflow_project),
+                "--display-page-start",
+                "12",
+                "--display-page-end",
+                "12",
+                "--output",
+                str(tmp_dir / "reflow-context-package.json"),
+            ],
+        },
+        {
+            "name": "assert_reflow_subtitle_timestamps",
             "command": [
                 python,
                 "-c",
                 (
                     "import json; "
                     "from pathlib import Path; "
-                    f"data=json.loads(Path({str(tmp_dir / 'reading-guide-context.json')!r}).read_text(encoding='utf-8')); "
-                    "ok=data.get('kind')=='reading_guide_context' "
-                    "and data.get('guide_brief', {}).get('target_path')=='references/reading_guide.md' "
-                    "and 'arc_segments' in data "
-                    "and 'subtitle_alignment' in data; "
-                    "raise SystemExit(0 if ok else 'reading guide context contract failed')"
+                    f"data=json.loads(Path({str(tmp_dir / 'reflow-context-package.json')!r}).read_text(encoding='utf-8')); "
+                    "timestamps=data.get('subtitle_candidates', {}).get('unique_subtitle_timestamps', []); "
+                    "all_timestamps=data.get('subtitle_candidates', {}).get('subtitle_timestamps', []); "
+                    "ok=any(len(item.get('entry_ids') or [])==2 "
+                    "and item.get('subtitle_event_index')==0 "
+                    "and item.get('subtitle_start')==2.0 "
+                    "and item.get('subtitle_end')==4.0 "
+                    "for item in timestamps) and all(item.get('subtitle_event_index')!=1 for item in timestamps) "
+                    "and any(item.get('subtitle_event_index')==1 and item.get('subtitle_match_confidence')=='low' for item in all_timestamps) "
+                    "and any(item.get('subtitle_event_index')==3 and item.get('subtitle_start')==900.0 for item in all_timestamps); "
+                    "raise SystemExit(0 if ok else 'stable subtitle timestamp missing')"
+                ),
+            ],
+        },
+        {
+            "name": "assert_subtitle_time_format",
+            "command": [
+                python,
+                "-c",
+                (
+                    "import sys; "
+                    f"sys.path.insert(0, {str(SCRIPTS_DIR)!r}); "
+                    "import build_html; "
+                    "ok=(build_html.format_subtitle_time(757.62)=='12:37' "
+                    "and build_html.format_subtitle_time(65.20)=='01:05' "
+                    "and build_html.format_subtitle_time(3915.20)=='01:05:15'); "
+                    "raise SystemExit(0 if ok else 'subtitle time format failed')"
+                ),
+            ],
+        },
+        {
+            "name": "plan_sample_batches",
+            "command": [
+                python,
+                str(SCRIPTS_DIR / "plan_batches.py"),
+                str(sample_project),
+                "--output",
+                str(tmp_dir / "batch-plan.json"),
+            ],
+        },
+        {
+            "name": "assert_batch_plan",
+            "command": [
+                python,
+                "-c",
+                (
+                    "import json; "
+                    "from pathlib import Path; "
+                    f"data=json.loads(Path({str(tmp_dir / 'batch-plan.json')!r}).read_text(encoding='utf-8')); "
+                    "ok=data.get('kind')=='batch_plan' "
+                    "and data.get('policy', {}).get('effect', '').startswith('advisory only') "
+                    "and isinstance(data.get('ranges'), list); "
+                    "raise SystemExit(0 if ok else 'batch plan contract failed')"
+                ),
+            ],
+        },
+        {
+            "name": "cost_report_sample_project",
+            "command": [
+                python,
+                str(SCRIPTS_DIR / "cost_report.py"),
+                str(sample_project),
+                "--output",
+                str(tmp_dir / "cost-report.json"),
+            ],
+        },
+        {
+            "name": "assert_cost_report",
+            "command": [
+                python,
+                "-c",
+                (
+                    "import json; "
+                    "from pathlib import Path; "
+                    f"data=json.loads(Path({str(tmp_dir / 'cost-report.json')!r}).read_text(encoding='utf-8')); "
+                    "ok=data.get('kind')=='cost_observation_report' "
+                    "and data.get('estimate_basis', {}).get('scope', '').startswith('local artifact') "
+                    "and data.get('cost_estimate', {}).get('status')=='estimated' "
+                    "and data.get('cost_estimate', {}).get('model_name') "
+                    "and data.get('cost_estimate', {}).get('estimated_total_usd') is not None "
+                    "and data.get('cost_estimate', {}).get('not_billing_authority') is True "
+                    "and data.get('summary', {}).get('groups'); "
+                    "raise SystemExit(0 if ok else 'cost report contract failed')"
                 ),
             ],
         },
@@ -1673,7 +1943,7 @@ def main() -> int:
                     f"cmd=[sys.executable, {str(SCRIPTS_DIR / 'clean_project.py')!r}, {str(clean_project_dir)!r}]; "
                     "out=subprocess.check_output(cmd, text=True); "
                     "required=['draft.json', 'translated-p001-002.json', 'temp.txt', 'preview.html']; "
-                    "forbidden=['translated-p001-004.json', 'sample-validation.txt', 'screenplay-study.html']; "
+                    "forbidden=['translated-p001-004.json', 'cost-report.json', 'sample-validation.txt', 'screenplay-study.html']; "
                     "missing=[item for item in required if item not in out]; "
                     "bad=[item for item in forbidden if item in out]; "
                     "raise SystemExit(f'clean candidates missing={missing} bad={bad}' if missing or bad else 0)"
@@ -1977,6 +2247,21 @@ def main() -> int:
             ],
         },
         {
+            "name": "assert_merged_batch_subtitle_timestamps",
+            "command": [
+                python,
+                "-c",
+                (
+                    "import json; from pathlib import Path; "
+                    f"data=json.loads(Path({str(merged_batch)!r}).read_text(encoding='utf-8')); "
+                    "entry=next(item for item in data['entries'] if item['id']=='p001-e002'); "
+                    "bad=entry.get('subtitle_event_index')!=0 or entry.get('subtitle_start')!=65.2 "
+                    "or entry.get('subtitle_end')!=66.4 or entry.get('subtitle_match_confidence')!='low'; "
+                    "raise SystemExit('merged timestamp missing or invalid' if bad else 0)"
+                ),
+            ],
+        },
+        {
             "name": "finalize_merged_batch_html",
             "command": [
                 python,
@@ -1993,9 +2278,74 @@ def main() -> int:
                 (
                     "from pathlib import Path; "
                     f"text=Path({str(merge_html)!r}).read_text(encoding='utf-8'); "
-                    "required=['原剧本第 1 页', '原剧本第 2 页', '本场删去']; "
+                    "required=['原剧本第 1 页', '原剧本第 2 页', '本场删去', '字幕匹配 01:05']; "
                     "missing=[item for item in required if item not in text]; "
                     "raise SystemExit('merged html missing: '+repr(missing) if missing else 0)"
+                ),
+            ],
+        },
+        {
+            "name": "export_merged_epub",
+            "command": [
+                python,
+                str(SCRIPTS_DIR / "export_epub.py"),
+                str(merge_project),
+            ],
+        },
+        {
+            "name": "assert_merged_epub",
+            "command": [
+                python,
+                "-c",
+                (
+                    "from pathlib import Path\n"
+                    "import zipfile\n"
+                    "from ebooklib import epub\n"
+                    f"path=Path({str(merge_epub)!r})\n"
+                    "bad=[]\n"
+                    "if not path.exists() or path.stat().st_size == 0:\n"
+                    "    bad.append('missing')\n"
+                    "book=epub.read_epub(str(path))\n"
+                    "names={item.get_name() for item in book.get_items()}\n"
+                    "spine=[item[0] if isinstance(item, tuple) else item for item in book.spine]\n"
+                    "if 'cover.xhtml' not in names:\n"
+                    "    bad.append('cover')\n"
+                    "if not any(name.startswith('chapter-') for name in names):\n"
+                    "    bad.append('chapter')\n"
+                    "if len(spine) < 3:\n"
+                    "    bad.append('spine')\n"
+                    "with zipfile.ZipFile(path) as archive:\n"
+                    "    text='\\n'.join(\n"
+                    "        archive.read(name).decode('utf-8', errors='ignore')\n"
+                    "        for name in archive.namelist()\n"
+                    "        if name.endswith(('.xhtml', '.html'))\n"
+                    "    )\n"
+                    "if '本中文剧本学习版仅供个人学习与研究使用，请勿商用或公开传播。' not in text:\n"
+                    "    bad.append('rights')\n"
+                    "if '原剧本第 1 页' not in text:\n"
+                    "    bad.append('toc-page')\n"
+                    "if '字幕匹配 01:05' not in text:\n"
+                    "    bad.append('subtitle-time')\n"
+                    "if '内景。测试地点' not in text:\n"
+                    "    bad.append('toc-scene')\n"
+                    "raise SystemExit('epub assertion failed: '+repr(bad) if bad else 0)\n"
+                ),
+            ],
+        },
+        {
+            "name": "assert_finalize_cost_report",
+            "command": [
+                python,
+                "-c",
+                (
+                    "import json; from pathlib import Path; "
+                    f"path=Path({str(merge_project_dir / 'work' / 'reports' / 'cost-report.json')!r}); "
+                    "data=json.loads(path.read_text(encoding='utf-8')); "
+                    "estimate=data.get('cost_estimate', {}); "
+                    "ok=estimate.get('status')=='estimated' "
+                    "and estimate.get('estimated_total_usd') is not None "
+                    "and estimate.get('not_billing_authority') is True; "
+                    "raise SystemExit(0 if ok else 'finalize cost report missing estimate')"
                 ),
             ],
         },
@@ -2030,19 +2380,15 @@ def main() -> int:
                     "from pathlib import Path; "
                     f"text=Path({str(reflow_html)!r}).read_text(encoding='utf-8'); "
                     "required=['data-display-unit-type=\"prose\"', 'data-source-entry-ids=\"r001,r002\"', "
-                    "'她把一个活页夹扔到他桌上。我们看见标题：“《水基假设分析与进化模型预期重校准》。”', "
-                    "'剧本名：<span class=\"proper-name\">挽救计划</span>（原文：PROJECT: HAIL MARY）', "
-                    "'编剧：<span class=\"proper-name\">德鲁·戈达德</span>（Drew Goddard）', "
-                    "'改编自<span class=\"proper-name\">安迪·威尔</span>（Andy Weir）的小说', "
+                    "'一个合成道具落下。标签写着：“《合成连续性检查》。”', "
+                    "'剧本名：<span class=\"proper-name\">合成案例标题</span>（原文：SYNTHETIC CASE TITLE）', "
+                    "'编剧：<span class=\"proper-name\">作者甲</span>（Author Alpha）', "
+                    "'改编自<span class=\"proper-name\">作者乙</span>（Author Beta）的合成文本', "
                     "'class=\"entry scene-heading scene-heading-no-markers\"', "
                     "'<div id=\"r000\" class=\"entry scene-heading scene-heading-no-markers\"', "
-                    "'data-source-entry-ids=\"r004,r005\"', '<span class=\"subtitle-label\">字幕匹配</span>', "
-                    "'本剧本出现的专业术语', '行尾星号（*）', "
-                    "'<h2 id=\"reading-guide-title\">导读</h2>', "
-                    "'这份导读来自剧本与字幕的综合阅读，不是逐条字幕统计。', "
-                    "'阅读路径', "
-                    "'剧本保留了更多铺垫；成片字幕更强调即时剧情推进。']; "
-                    "forbidden=['标题页信息：', '<p>Screenplay by</p>', '<p>Drew Goddard</p>', "
+                    "'data-source-entry-ids=\"r004,r005\"', '<span class=\"subtitle-label\">字幕匹配 00:02</span>', "
+                    "'本剧本出现的专业术语', '行尾星号（*）']; "
+                    "forbidden=['标题页信息：', '<p>Screenplay by</p>', '<p>Author Alpha</p>', '<span class=\"subtitle-label\">字幕未见 00:', "
                     "'id=\"r000\" class=\"entry scene-heading scene-heading-no-markers\" data-source-entry-ids=\"r000\" data-entry-type=\"scene_heading\" data-pdf-page=\"13\" data-display-page=\"12\"><span class=\"scene-marker-slot']; "
                     "missing=[item for item in required if item not in text]; "
                     "bad=[item for item in forbidden if item in text]; "
@@ -2072,14 +2418,14 @@ def main() -> int:
                     "'<span class=\"proper-name\">下划线</span>用于人物、地点、片名等专名', "
                     "'<strong class=\"emphasis\">加粗</strong>用于音效、银幕重点或剧本强调', "
                     "'<em class=\"term\">斜体</em>用于英文剧本术语、缩写或格式说明', "
-                    "'1 · 内景。<span class=\"proper-name\">房间</span> - 夜', "
+                    "'1 · 内景。<span class=\"proper-name\">测试地点</span> - 夜', "
                     "'<span class=\"scene-marker-slot scene-marker-left\"><span class=\"marker marker-scene_no scene-no\" data-marker-type=\"scene_no\" data-marker-position=\"left\">1</span></span>', "
                     "'<span class=\"scene-marker-slot scene-marker-right\"><span class=\"marker marker-scene_no scene-no\" data-marker-type=\"scene_no\" data-marker-position=\"right\">1</span></span>', "
-                    "'<span class=\"proper-name\">凯西</span>', "
-                    "'<span class=\"reader-annotation\">敲门声</span>', "
-                    "'<span class=\"reader-annotation\">画外音</span>', "
-                    "'<p class=\"entry-line-with-revision-asterisk\"><span class=\"entry-line-text\">房间静静等待。</span><span class=\"revision-asterisk\" aria-label=\"源剧本修订星号\">*</span></p>']; "
-                    "forbidden=['导读：剧本与字幕差异', '导读：剧本场景与字幕位置差异']; "
+                    "'<span class=\"proper-name\">角色甲</span>', "
+                    "'<span class=\"reader-annotation\">提示音</span>', "
+                    "'<span class=\"reader-annotation\">屏幕文字</span>', "
+                    "'<p class=\"entry-line-with-revision-asterisk\"><span class=\"entry-line-text\">合成动作片段等待。</span><span class=\"revision-asterisk\" aria-label=\"源剧本修订星号\">*</span></p>']; "
+                    "forbidden=[]; "
                     "missing=[item for item in required + progress if item not in text]; "
                     "bad=[item for item in forbidden if item in text]; "
                     "missing += ['forbidden present: '+repr(bad)] if bad else []; "
@@ -2106,8 +2452,8 @@ def main() -> int:
                     "from pathlib import Path; "
                     f"text=Path({str(no_scene_numbers_html)!r}).read_text(encoding='utf-8'); "
                     "required=['<summary id=\"scene-index-title\">场景导航</summary>', "
-                    "'内景。<span class=\"proper-name\">房间</span> - 夜', "
-                    "'外景。<span class=\"proper-name\">街道</span> - 日']; "
+                    "'内景。<span class=\"proper-name\">测试地点</span> - 夜', "
+                    "'外景。<span class=\"proper-name\">测试区域</span> - 日']; "
                     "forbidden=['<summary id=\"scene-index-title\">场次索引</summary>', "
                     "'1 · 内景。', '2 · 外景。']; "
                     "missing=[item for item in required if item not in text]; "
@@ -2135,6 +2481,9 @@ def main() -> int:
                 "--output",
                 str(batch_pdf),
             ],
+            # SKIP: PDF output deprecated in v0.3. See references/decisions.md.
+            "skip": True,
+            "skip_reason": "PDF output deprecated in v0.3. See references/decisions.md.",
         },
         {
             "name": "audit_valid_batch_outputs",
@@ -2170,6 +2519,15 @@ def main() -> int:
                     / "invalid-subtitle-label"
                     / "batch.json"
                 ),
+            ],
+            "expect_failure": True,
+        },
+        {
+            "name": "invalid_batch_subtitle_timestamp",
+            "command": [
+                python,
+                str(SCRIPTS_DIR / "validate_batch.py"),
+                str(invalid_subtitle_timestamp_batch),
             ],
             "expect_failure": True,
         },
@@ -2227,6 +2585,9 @@ def main() -> int:
 
     ok = True
     for check in checks:
+        if check.get("skip"):
+            print(f"SKIP {check['name']} {check['skip_reason']}", flush=True)
+            continue
         ok = (
             run_check(
                 check["name"],

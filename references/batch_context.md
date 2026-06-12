@@ -79,6 +79,10 @@ boundary as `scripts/draft_batch.py`.
   assuming subtitle order matches screenplay order. It may include
   `advisory_matches` per dialogue unit. If no reliable candidate is found, the
   candidate list should stay empty rather than guessing from timeline position.
+  When a dialogue unit has exactly one non-conflicting subtitle candidate,
+  `unique_subtitle_timestamps` may provide `entry_ids`,
+  `subtitle_event_index`, `subtitle_start`, and `subtitle_end` for persistence
+  in the translated batch.
   These candidates do not decide `字幕匹配`, `字幕差异`, or `字幕未见`; the agent still
   applies semantic expression-unit judgment.
 - `terminology.relevant_terms`: current-range subset selected from the
@@ -86,6 +90,10 @@ boundary as `scripts/draft_batch.py`.
 - `style_summary`: compact style-profile summary for this batch.
 - `continuity`: tail of the previous translated batch for voice, terminology,
   and page-boundary continuity.
+
+Token savings must come from compact advisory fields such as subtitle
+candidates, warning/noise signals, and continuity. Do not reduce cost by
+removing current-range source text that still needs translation.
 
 ## Constraints
 

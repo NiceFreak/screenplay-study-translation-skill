@@ -9,3 +9,11 @@ default_prompt: |
 
   Follow the rules defined in those documents.
   Do not proceed with any task until all three files have been read.
+
+  Preferred user-facing intents:
+  - "生成预览"
+  - "翻译下一批"
+  - "生成成品 HTML"
+  - "导出 EPUB"
+  - "先给我第一批预览"
+  - "预览通过，继续跑完整本"

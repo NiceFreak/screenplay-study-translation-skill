@@ -75,6 +75,13 @@ A batch combines source text rows from `source-lines.json`, adjacent structure m
 - Subtitle label state belongs only in the structured `subtitle_label` field.
   Do not prefix or embed `字幕匹配`, `字幕差异`, or `字幕未见` inside
   `translation`; `translation` contains only reader-facing translated text.
+- When a dialogue entry has a stable matched subtitle event, it may also include
+  optional subtitle timestamp fields:
+  - `subtitle_event_index`: zero-based index in `work/subtitles.json`.
+  - `subtitle_start`: subtitle event start time in seconds.
+  - `subtitle_end`: subtitle event end time in seconds.
+  These fields persist the matched subtitle time only. They do not encode scene
+  alignment, difference type, confidence, or timeline analysis.
 - When subtitles are present and a corresponding subtitle exists, dialogue entry
   `translation` should use the subtitle content directly. Non-dialogue entries
   are translated by AI using `work/style-profile.json`.

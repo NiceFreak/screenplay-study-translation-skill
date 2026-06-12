@@ -34,6 +34,13 @@ MARKER_TYPES = {
 }
 SUBTITLE_LABELS = {"字幕匹配", "字幕差异", "字幕未见"}
 LAYOUT_TYPES = {"parallel_dialogue"}
+SUBTITLE_TIMESTAMP_FIELDS = {
+    "subtitle_event_index",
+    "subtitle_start",
+    "subtitle_end",
+    "subtitle_match_confidence",
+}
+SUBTITLE_MATCH_CONFIDENCE = {"high", "low"}
 DRAFT_PREFIXES = (
     "待译场景标题：",
     "待译动作描写：",
@@ -285,6 +292,8 @@ def validate_entry(
     if not is_non_empty_string(entry.get("translation")):
         fail(findings, "batch.translation", f"{path}.translation missing")
 
+    validate_subtitle_timestamps(entry, path, has_subtitles, findings)
+
     label = entry.get("subtitle_label")
     if label is not None:
         if label not in SUBTITLE_LABELS:
@@ -326,6 +335,58 @@ def validate_entry(
     layout = entry.get("layout")
     if layout is not None:
         validate_entry_layout(layout, path, findings)
+
+
+def validate_subtitle_timestamps(
+    entry: dict[str, Any], path: str, has_subtitles: bool, findings: list[Finding]
+) -> None:
+    present = SUBTITLE_TIMESTAMP_FIELDS & entry.keys()
+    if not present:
+        return
+    if not has_subtitles:
+        fail(
+            findings,
+            "batch.subtitle_timestamp_without_source",
+            f"{path} timestamp fields require subtitles",
+        )
+    if entry.get("type") != "dialogue":
+        fail(
+            findings,
+            "batch.subtitle_timestamp_entry_type",
+            f"{path} timestamp fields require dialogue entry",
+        )
+    if entry.get("subtitle_label") == "字幕未见":
+        fail(
+            findings,
+            "batch.subtitle_timestamp_unseen",
+            f"{path} timestamp fields cannot accompany 字幕未见",
+        )
+    event_index = entry.get("subtitle_event_index")
+    if not isinstance(event_index, int) or event_index < 0:
+        fail(
+            findings,
+            "batch.subtitle_event_index",
+            f"{path}.subtitle_event_index={event_index}",
+        )
+    start = entry.get("subtitle_start")
+    end = entry.get("subtitle_end")
+    if not isinstance(start, (int, float)):
+        fail(findings, "batch.subtitle_start", f"{path}.subtitle_start={start}")
+    if not isinstance(end, (int, float)):
+        fail(findings, "batch.subtitle_end", f"{path}.subtitle_end={end}")
+    if isinstance(start, (int, float)) and isinstance(end, (int, float)) and start > end:
+        fail(
+            findings,
+            "batch.subtitle_time_range",
+            f"{path}.subtitle_start={start} subtitle_end={end}",
+        )
+    confidence = entry.get("subtitle_match_confidence")
+    if confidence is not None and confidence not in SUBTITLE_MATCH_CONFIDENCE:
+        fail(
+            findings,
+            "batch.subtitle_match_confidence",
+            f"{path}.subtitle_match_confidence={confidence}",
+        )
 
 
 def validate_entry_layout(layout: Any, path: str, findings: list[Finding]) -> None:

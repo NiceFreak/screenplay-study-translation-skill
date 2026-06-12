@@ -23,7 +23,9 @@ Run `scripts/extract_pdf.py` before `scripts/validate_sample.py`. Validation mus
 - halt before Stage 2 source scan when extraction completeness is not verified
 - do not infer why pages are missing without explicit source evidence
 
-Use `--include-output-audit` only when intentionally checking existing HTML/PDF outputs from a previous stage.
+Use `--include-output-audit` only when intentionally checking existing reader
+outputs from a previous stage. PDF output is deprecated; any configured PDF
+audit is legacy-only.
 
 Before Stage 3 batch creation, confirm Stage 2 signal recording with `scripts/confirm_stage2.py`. It writes `work/logs/stage-2-confirmation.json`. Stage 3 draft creation must fail when this confirmation is missing, stale, or unapproved.
 
