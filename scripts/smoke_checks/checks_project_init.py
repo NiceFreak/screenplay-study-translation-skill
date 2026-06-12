@@ -59,4 +59,28 @@ def build_checks(tmp_dir: Path, python: str) -> list[SmokeCheck]:
                 ),
             ],
         },
+        {
+            "name": "init_project_reader_notes",
+            "command": [
+                python,
+                "-c",
+                (
+                    "import pathlib, sys; "
+                    f"path=pathlib.Path({str(initialized_project_dir)!r}) / "
+                    "'references' / 'reader_notes.md'; "
+                    "text=path.read_text(encoding='utf-8'); "
+                    "required=['# 阅读说明', '__下划线__用于人物、地点、片名等专名', "
+                    "'对应原剧本显示页码；场号保留原剧本边栏编号。', "
+                    "'已参考提供的中文字幕，方便对照对白。']; "
+                    "forbidden=['本预览保留源剧本', '## 格式约定', "
+                    "'| English | Chinese | Notes |', '## 本剧本出现的专业术语', "
+                    "'**行尾星号（*）**', '**INT. / EXT.**', "
+                    "'**V.O. / O.S. / O.C.**', \"**CONT'D / MORE**\", "
+                    "'**CUT TO / BACK TO**', '**SUPER**']; "
+                    "bad=[item for item in required if item not in text]; "
+                    "bad += [item for item in forbidden if item in text]; "
+                    "sys.exit(1 if bad else 0)"
+                ),
+            ],
+        },
     ]
