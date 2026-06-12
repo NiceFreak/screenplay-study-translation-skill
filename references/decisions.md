@@ -87,6 +87,13 @@ or entry-level traceability.
 - Renderer-level reflow improves readability while preserving reproducibility
   and traceability
 
+**Renderer guardrail:**
+
+- Reflow protection must be entry-type aware. A dash-prefixed `action` line
+  remains action prose and must not be treated as an HTML list item or protected
+  block. The renderer must not reset action prose continuity merely because an
+  action translation begins with `- `.
+
 -----
 
 ## Translation

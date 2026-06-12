@@ -313,7 +313,9 @@ def main() -> int:
         return 1
 
     try:
-        merged = merge_batches_with_context(paths, context_dir_for_batches(paths, batch_dir))
+        merged = merge_batches_with_context(
+            paths, context_dir_for_batches(paths, batch_dir)
+        )
     except ValueError as exc:
         print(f"FAIL merge_batches {exc}", file=sys.stderr)
         return 1

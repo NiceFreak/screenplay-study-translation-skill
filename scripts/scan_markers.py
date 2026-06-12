@@ -38,10 +38,19 @@ TM_RE = re.compile(
     rb"(?P<a>-?\d+(?:\.\d+)?)\s+0\s+0\s+(?P<d>-?\d+(?:\.\d+)?)\s+"
     rb"(?P<x>-?\d+(?:\.\d+)?)\s+(?P<y>-?\d+(?:\.\d+)?)\s+Tm"
 )
-TF_RE = re.compile(
-    rb"/(?P<font>[^\s/]+)\s+(?P<size>-?\d+(?:\.\d+)?)\s+Tf"
+TF_RE = re.compile(rb"/(?P<font>[^\s/]+)\s+(?P<size>-?\d+(?:\.\d+)?)\s+Tf")
+TD_RE = re.compile(rb"(?P<tx>-?\d+(?:\.\d+)?)\s+(?P<ty>-?\d+(?:\.\d+)?)\s+T[dD]")
+TJ_RE = re.compile(rb"\((?P<text>(?:\\.|[^\\)])*)\)\s*Tj", re.S)
+ARRAY_TJ_RE = re.compile(rb"\[(?P<items>.*?)\]\s*TJ", re.S)
+ARRAY_TJ_STRING_RE = re.compile(rb"\((?P<text>(?:\\.|[^\\)])*)\)", re.S)
+TEXT_TOKEN_RE = re.compile(
+    rb"(?:-?\d+(?:\.\d+)?\s+){6}Tm|"
+    rb"/[^\s/]+\s+-?\d+(?:\.\d+)?\s+Tf|"
+    rb"-?\d+(?:\.\d+)?\s+-?\d+(?:\.\d+)?\s+T[dD]|"
+    rb"\((?:\\.|[^\\)])*\)\s*Tj|"
+    rb"\[(?:\\.|[^\]])*\]\s*TJ",
+    re.S,
 )
-TJ_RE = re.compile(rb"\((?P<text>(?:\\.|[^\\)])*)\)\s+Tj", re.S)
 
 
 @dataclass
@@ -62,37 +71,46 @@ def iter_text_ops(data: bytes) -> list[dict[str, Any]]:
     for block in TEXT_BLOCK_RE.finditer(data):
         body = block.group("body")
         matrix: re.Match[bytes] | None = None
+        matrix_values: dict[str, float] | None = None
         font_resource: str | None = None
         font_size: float | None = None
-        for token in re.finditer(
-            rb"(?:-?\d+(?:\.\d+)?\s+){6}Tm|/[^\s/]+\s+-?\d+(?:\.\d+)?\s+Tf|\((?:\\.|[^\\)])*\)\s+Tj",
-            body,
-            re.S,
-        ):
+        for token in TEXT_TOKEN_RE.finditer(body):
             value = token.group(0)
             tm_match = TM_RE.fullmatch(value)
             if tm_match is not None:
                 matrix = tm_match
+                matrix_values = {
+                    "a": float(tm_match.group("a")),
+                    "d": float(tm_match.group("d")),
+                    "x": float(tm_match.group("x")),
+                    "y": float(tm_match.group("y")),
+                }
                 continue
             tf_match = TF_RE.fullmatch(value)
             if tf_match is not None:
-                font_resource = tf_match.group("font").decode("latin1", errors="replace")
+                font_resource = tf_match.group("font").decode(
+                    "latin1", errors="replace"
+                )
                 font_size = float(tf_match.group("size"))
                 continue
-            text_match = TJ_RE.fullmatch(value)
-            if text_match is None or matrix is None:
+            td_match = TD_RE.fullmatch(value)
+            if td_match is not None and matrix_values is not None:
+                matrix_values["x"] += float(td_match.group("tx")) * matrix_values["a"]
+                matrix_values["y"] += float(td_match.group("ty")) * matrix_values["d"]
                 continue
-            d = float(matrix.group("d"))
+            text = text_show_bytes(value)
+            if text is None or matrix is None or matrix_values is None:
+                continue
             height_raw = block.group("height")
             page_height = (
                 float(height_raw) if height_raw is not None else DEFAULT_PAGE_HEIGHT
             )
-            y_raw = float(matrix.group("y"))
-            flipped = bool(block.group("prefix")) or d < 0
+            y_raw = matrix_values["y"]
+            flipped = bool(block.group("prefix")) or matrix_values["d"] < 0
             ops.append(
                 {
-                    "text": text_match.group("text"),
-                    "x": float(matrix.group("x")),
+                    "text": text,
+                    "x": matrix_values["x"],
                     "y": page_height - y_raw if flipped else y_raw,
                     "source_layer": "flipped" if flipped else "normal",
                     "font_resource": font_resource,
@@ -100,6 +118,19 @@ def iter_text_ops(data: bytes) -> list[dict[str, Any]]:
                 }
             )
     return ops
+
+
+def text_show_bytes(token: bytes) -> bytes | None:
+    text_match = TJ_RE.fullmatch(token)
+    if text_match is not None:
+        return text_match.group("text")
+    array_match = ARRAY_TJ_RE.fullmatch(token)
+    if array_match is None:
+        return None
+    return b"".join(
+        item.group("text")
+        for item in ARRAY_TJ_STRING_RE.finditer(array_match.group("items"))
+    )
 
 
 def pdf_unescape(data: bytes) -> str:
@@ -339,7 +370,9 @@ def style_tags_for_font_name(font_name: str) -> set[str]:
     return styles
 
 
-def page_font_styles(objects: dict[int, bytes], page_obj_id: int) -> dict[str, set[str]]:
+def page_font_styles(
+    objects: dict[int, bytes], page_obj_id: int
+) -> dict[str, set[str]]:
     resources = font_resource_object_ids(objects.get(page_obj_id, b""))
     styles: dict[str, set[str]] = {}
     for resource, font_obj_id in resources.items():
@@ -522,7 +555,10 @@ def scan_pdf_detailed(pdf_path: Path, displayed_page_offset: int) -> ScanResult:
                                     op,
                                 )
                             )
-                    elif x < SCENE_MARGIN_WIDTH or x > DEFAULT_PAGE_WIDTH - SCENE_MARGIN_WIDTH:
+                    elif (
+                        x < SCENE_MARGIN_WIDTH
+                        or x > DEFAULT_PAGE_WIDTH - SCENE_MARGIN_WIDTH
+                    ):
                         noise_seen += 1
                         if len(noise_candidates) < 50:
                             noise_candidates.append(

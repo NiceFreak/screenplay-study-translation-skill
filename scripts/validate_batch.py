@@ -237,8 +237,7 @@ def has_source_revision_asterisk(source: Any) -> bool:
 
 def has_rendered_revision_asterisk(text: Any) -> bool:
     return (
-        isinstance(text, str)
-        and RENDERED_REVISION_ASTERISK_RE.search(text) is not None
+        isinstance(text, str) and RENDERED_REVISION_ASTERISK_RE.search(text) is not None
     )
 
 
@@ -374,7 +373,11 @@ def validate_subtitle_timestamps(
         fail(findings, "batch.subtitle_start", f"{path}.subtitle_start={start}")
     if not isinstance(end, (int, float)):
         fail(findings, "batch.subtitle_end", f"{path}.subtitle_end={end}")
-    if isinstance(start, (int, float)) and isinstance(end, (int, float)) and start > end:
+    if (
+        isinstance(start, (int, float))
+        and isinstance(end, (int, float))
+        and start > end
+    ):
         fail(
             findings,
             "batch.subtitle_time_range",
@@ -428,7 +431,11 @@ def validate_entry_layout(layout: Any, path: str, findings: list[Finding]) -> No
         for column_index, column in enumerate(columns):
             column_path = f"{path}.layout.columns[{column_index}]"
             if not isinstance(column, dict):
-                fail(findings, "batch.layout_parallel_column", f"{column_path} must be object")
+                fail(
+                    findings,
+                    "batch.layout_parallel_column",
+                    f"{column_path} must be object",
+                )
                 continue
             speaker = column.get("speaker")
             if speaker is not None and not is_non_empty_string(speaker):
@@ -549,9 +556,7 @@ def validate_batch(
                 )
                 missing_subtitle_label_ids.append(entry_id)
         if final and isinstance(entry, dict):
-            validate_final_entry(
-                entry, index, findings, revision_asterisk_is_required
-            )
+            validate_final_entry(entry, index, findings, revision_asterisk_is_required)
             translation = entry.get("translation")
             if isinstance(translation, str):
                 inline_markup_count += len(INLINE_MARKUP_RE.findall(translation))

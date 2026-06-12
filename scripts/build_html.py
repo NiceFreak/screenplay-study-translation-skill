@@ -54,6 +54,7 @@ class DisplayUnit(TypedDict):
     metadata: dict[str, Any]
     entry_objects: list[dict[str, Any]]
 
+
 STYLE = """
 :root {
   color-scheme: light;
@@ -293,6 +294,10 @@ html {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.scene-heading:not(.scene-heading-no-markers) {
+  background: color-mix(in srgb, var(--accent) 6%, var(--paper));
+}
+
 .scene-heading .entry-content {
   display: flex;
   align-items: center;
@@ -300,6 +305,10 @@ html {
   padding: 0.34rem 0.76rem;
   background: color-mix(in srgb, var(--accent) 6%, var(--paper));
   border-left: 4px solid color-mix(in srgb, var(--accent) 70%, var(--rule));
+}
+
+.scene-heading:not(.scene-heading-no-markers) .entry-content {
+  background: transparent;
 }
 
 .scene-heading p {
@@ -684,7 +693,9 @@ def render_text_paragraph(text: str, prefix_html: str = "") -> str:
 
 def render_inline_markup(text: str) -> str:
     escaped = html.escape(text)
-    escaped = re.sub(r"\[\[(.+?)\]\]", r'<span class="reader-annotation">\1</span>', escaped)
+    escaped = re.sub(
+        r"\[\[(.+?)\]\]", r'<span class="reader-annotation">\1</span>', escaped
+    )
     escaped = re.sub(r"__(.+?)__", r'<span class="proper-name">\1</span>', escaped)
     escaped = re.sub(r"\*\*(.+?)\*\*", r'<strong class="emphasis">\1</strong>', escaped)
     escaped = re.sub(
@@ -732,9 +743,9 @@ def render_parallel_dialogue(
             else ""
         )
         rendered_columns.append(
-            "  <div class=\"parallel-dialogue-column\">\n"
+            '  <div class="parallel-dialogue-column">\n'
             f"{speaker_html}"
-            "    <div class=\"parallel-dialogue-lines\">\n"
+            '    <div class="parallel-dialogue-lines">\n'
             f"{line_html}\n"
             "    </div>\n"
             "  </div>"
@@ -745,9 +756,7 @@ def render_parallel_dialogue(
 
     source_ids = layout_source_ids(entry, layout)
     if source_ids:
-        attrs.append(
-            f'data-layout-source-ids="{html.escape(source_ids, quote=True)}"'
-        )
+        attrs.append(f'data-layout-source-ids="{html.escape(source_ids, quote=True)}"')
     attrs.append('data-layout-type="parallel_dialogue"')
     return (
         f"<div {' '.join(attrs)}>\n"
@@ -828,6 +837,8 @@ def has_explicit_reflow_off(entry: dict[str, Any]) -> bool:
 
 def is_list_like(entry: dict[str, Any]) -> bool:
     text = entry_translation(entry)
+    if str(entry.get("type") or "") == "action" and re.search(r"^\s*-\s+", text):
+        return False
     return LIST_LIKE_RE.search(text) is not None
 
 
@@ -924,10 +935,9 @@ def can_merge_entries(previous: dict[str, Any], current: dict[str, Any]) -> bool
     current_type = str(current.get("type") or "")
     if previous_type == current_type == "action":
         return True
-    return (
-        previous_type == current_type == "dialogue"
-        and entry_subtitle_display_label(previous) == entry_subtitle_display_label(current)
-    )
+    return previous_type == current_type == "dialogue" and entry_subtitle_display_label(
+        previous
+    ) == entry_subtitle_display_label(current)
 
 
 def reflow_grouping_pass(entries: list[dict[str, Any]]) -> list[DisplayUnit]:
@@ -937,7 +947,9 @@ def reflow_grouping_pass(entries: list[dict[str, Any]]) -> list[DisplayUnit]:
     def flush_pending() -> None:
         nonlocal pending
         if pending:
-            display_units.append(make_display_unit(display_unit_type(pending[0]), pending))
+            display_units.append(
+                make_display_unit(display_unit_type(pending[0]), pending)
+            )
             pending = []
 
     for entry in entries:
@@ -991,7 +1003,9 @@ def render_display_unit(unit: DisplayUnit) -> str:
     return f"<div {' '.join(attrs)}>{content}</div>"
 
 
-def project_file_for_batch(batch_path: Path | None, project_path: Path | None = None) -> Path | None:
+def project_file_for_batch(
+    batch_path: Path | None, project_path: Path | None = None
+) -> Path | None:
     if project_path is not None:
         return project_path.expanduser().resolve()
     if batch_path is None:
@@ -1201,7 +1215,10 @@ def source_lines_path_for_batch(batch_path: Path | None) -> Path | None:
     if batch_path is None:
         return None
     for parent in batch_path.resolve().parents:
-        for candidate in (parent / "source-lines.json", parent / "work" / "source-lines.json"):
+        for candidate in (
+            parent / "source-lines.json",
+            parent / "work" / "source-lines.json",
+        ):
             if candidate.exists():
                 return candidate
     return None
@@ -1218,7 +1235,9 @@ def load_source_rows_for_batch(batch_path: Path | None) -> list[dict[str, Any]]:
     return [row for row in rows if isinstance(row, dict)]
 
 
-def source_page_total(batch: dict[str, Any], source_rows: list[dict[str, Any]]) -> int | None:
+def source_page_total(
+    batch: dict[str, Any], source_rows: list[dict[str, Any]]
+) -> int | None:
     display_pages = [
         row.get("display_page")
         for row in source_rows
@@ -1300,10 +1319,60 @@ def body_entries(batch: dict[str, Any]) -> list[dict[str, Any]]:
     return [entry for entry in entries if isinstance(entry, dict)]
 
 
-def render_reader_note_markdown(markdown: str, list_class: str = "term-note-list") -> str:
+def markdown_table_cells(line: str) -> list[str] | None:
+    stripped = line.strip()
+    if not stripped.startswith("|") or not stripped.endswith("|"):
+        return None
+    return [cell.strip() for cell in stripped.strip("|").split("|")]
+
+
+def is_markdown_table_separator(cells: list[str]) -> bool:
+    if not cells:
+        return False
+    return all(re.fullmatch(r":?-{3,}:?", cell.strip()) for cell in cells)
+
+
+def render_markdown_table(rows: list[list[str]]) -> list[str]:
+    if not rows:
+        return []
+    header = rows[0]
+    body_rows = rows[1:]
+    rendered = ["    <table>"]
+    rendered.append("      <thead>")
+    rendered.append(
+        "        <tr>"
+        + "".join(f"<th>{render_inline_markup(cell)}</th>" for cell in header)
+        + "</tr>"
+    )
+    rendered.append("      </thead>")
+    if body_rows:
+        rendered.append("      <tbody>")
+        for row in body_rows:
+            normalized = row + [""] * max(0, len(header) - len(row))
+            rendered.append(
+                "        <tr>"
+                + "".join(
+                    f"<td>{render_inline_markup(cell)}</td>"
+                    for cell in normalized[: len(header)]
+                )
+                + "</tr>"
+            )
+        rendered.append("      </tbody>")
+    rendered.append("    </table>")
+    return rendered
+
+
+def render_reader_note_markdown(
+    markdown: str,
+    list_class: str = "term-note-list",
+    skip_first_heading: str | None = None,
+) -> str:
     chunks: list[str] = []
     paragraph_lines: list[str] = []
     list_items: list[str] = []
+    table_rows: list[list[str]] = []
+    table_separator_seen = False
+    first_heading_skipped = False
 
     def flush_paragraph() -> None:
         if not paragraph_lines:
@@ -1321,8 +1390,27 @@ def render_reader_note_markdown(markdown: str, list_class: str = "term-note-list
         chunks.append("    </ul>")
         list_items.clear()
 
+    def flush_table() -> None:
+        nonlocal table_separator_seen
+        if table_rows:
+            chunks.extend(render_markdown_table(table_rows))
+            table_rows.clear()
+        table_separator_seen = False
+
     for raw_line in markdown.splitlines():
         line = raw_line.strip()
+        table_cells = markdown_table_cells(line)
+        if table_cells is not None:
+            flush_paragraph()
+            flush_list()
+            if len(table_rows) == 1 and is_markdown_table_separator(table_cells):
+                table_separator_seen = True
+                continue
+            if table_rows and not table_separator_seen:
+                flush_table()
+            table_rows.append(table_cells)
+            continue
+        flush_table()
         if not line:
             flush_paragraph()
             flush_list()
@@ -1331,6 +1419,13 @@ def render_reader_note_markdown(markdown: str, list_class: str = "term-note-list
             flush_paragraph()
             flush_list()
             heading = line.lstrip("#").strip()
+            if (
+                skip_first_heading is not None
+                and not first_heading_skipped
+                and heading == skip_first_heading
+            ):
+                first_heading_skipped = True
+                continue
             if heading:
                 chunks.append(f"    <h3>{render_inline_markup(heading)}</h3>")
             continue
@@ -1345,6 +1440,7 @@ def render_reader_note_markdown(markdown: str, list_class: str = "term-note-list
 
     flush_paragraph()
     flush_list()
+    flush_table()
     return "\n".join(chunks)
 
 
@@ -1356,9 +1452,7 @@ def render_front_matter(
 ) -> str:
     if front_matter_markdown and front_matter_markdown.strip():
         body = render_reader_note_markdown(front_matter_markdown)
-        return "\n".join(
-            ['    <div class="reader-front-matter">', body, "    </div>"]
-        )
+        return "\n".join(['    <div class="reader-front-matter">', body, "    </div>"])
 
     items: list[str] = []
     front_matter = front_matter_entries(batch)
@@ -1366,7 +1460,9 @@ def render_front_matter(
         for entry in front_matter:
             translation = entry.get("translation")
             if isinstance(translation, str) and translation.strip():
-                items.append(f"      <p>{render_inline_markup(translation.strip())}</p>")
+                items.append(
+                    f"      <p>{render_inline_markup(translation.strip())}</p>"
+                )
     else:
         for translation in title_page_translation_items(source_rows, config):
             items.append(f"      <p>{render_inline_markup(translation)}</p>")
@@ -1402,7 +1498,9 @@ def render_reader_note(
     batch: dict[str, Any], reader_notes_markdown: str | None = None
 ) -> str:
     if reader_notes_markdown and reader_notes_markdown.strip():
-        body = render_reader_note_markdown(reader_notes_markdown)
+        body = render_reader_note_markdown(
+            reader_notes_markdown, skip_first_heading="阅读说明"
+        )
         return f"""  <section class="reader-note" aria-labelledby="reader-note-title">
     <h2 id="reader-note-title">阅读说明</h2>
 {body}

@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: python3 -m pip install -r requirements.txt
+
+      - name: Smoke
+        run: python3 scripts/smoke.py
+
+      - name: Compile scripts
+        run: python3 -m compileall scripts
+
+      - name: Ruff check
+        run: ruff check scripts
+
+      - name: Ruff format check
+        run: ruff format --check scripts

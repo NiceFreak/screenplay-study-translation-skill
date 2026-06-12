@@ -325,9 +325,7 @@ class StudyHTMLParser(HTMLParser):
         if tag == "a" and self._inside_scene_index() and attr_map.get("href"):
             self._current_link = {"href": attr_map.get("href", ""), "text": []}
 
-    def handle_startendtag(
-        self, tag: str, attrs: list[tuple[str, str | None]]
-    ) -> None:
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if self._skip_depth:
             return
         if self.stack:
@@ -567,7 +565,9 @@ def page_part(section: Section) -> PagePart | None:
     return PagePart(section=section, open_tag=match.group(1), inner=match.group(2))
 
 
-def anchor_locations(parts: list[PagePart], links: list[SceneLink]) -> list[AnchorLocation]:
+def anchor_locations(
+    parts: list[PagePart], links: list[SceneLink]
+) -> list[AnchorLocation]:
     locations: list[AnchorLocation] = []
     seen: set[str] = set()
     for link in links:
@@ -586,14 +586,14 @@ def anchor_locations(parts: list[PagePart], links: list[SceneLink]) -> list[Anch
 
 
 def anchor_offset(fragment: str, anchor_id: str) -> int:
-    pattern = re.compile(
-        rf"<[^>]+\bid=[\"']{re.escape(anchor_id)}[\"'][^>]*>", re.I
-    )
+    pattern = re.compile(rf"<[^>]+\bid=[\"']{re.escape(anchor_id)}[\"'][^>]*>", re.I)
     match = pattern.search(fragment)
     return match.start() if match else -1
 
 
-def page_scene_links(body_sections: list[Section], links: list[SceneLink]) -> dict[str, list[SceneLink]]:
+def page_scene_links(
+    body_sections: list[Section], links: list[SceneLink]
+) -> dict[str, list[SceneLink]]:
     parts = [part for section in body_sections if (part := page_part(section))]
     output: dict[str, list[SceneLink]] = {section.id: [] for section in body_sections}
     if parts:
@@ -605,7 +605,11 @@ def page_scene_links(body_sections: list[Section], links: list[SceneLink]) -> di
     if mapped_pages:
         by_page = {page_number(section): section.id for section in body_sections}
         for link in links:
-            if any(link.href == existing.href for values in output.values() for existing in values):
+            if any(
+                link.href == existing.href
+                for values in output.values()
+                for existing in values
+            ):
                 continue
             section_id = by_page.get(mapped_pages.get(link.href, -999999))
             if section_id:
@@ -709,9 +713,7 @@ def build_epub(
 
     cover = cover_section(parsed.sections, title, metadata["source_title"])
     reader_notes = [
-        section
-        for section in parsed.sections
-        if "reader-note" in section.html
+        section for section in parsed.sections if "reader-note" in section.html
     ]
     body_sections = [
         section for section in parsed.sections if "script-page" in section.html

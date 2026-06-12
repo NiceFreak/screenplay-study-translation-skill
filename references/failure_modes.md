@@ -284,3 +284,26 @@ assets/fixtures/README.md declares that all fixture content must be synthetic.
 Remediation: Replace real content with synthetic equivalents. Run residual
 scan to confirm no real project keywords remain in scripts/ or assets/.
 Status: RESOLVED
+
+-----
+
+## FM-017 Dash-Prefixed Action Line Breaks Reflow Continuity
+
+Name: List-Like Protection Misapplied to Action Entries
+Symptoms: Action lines beginning with `-` are treated as protected list
+items, causing reflow to flush pending groups and restart after the
+dash-prefixed line. Subsequent action prose appears as a separate
+display unit instead of continuing the same paragraph.
+Root Cause: `is_list_like()` matched any translation beginning with
+`- `, `+ `, `• `, or `1. ` regardless of entry type. `reflow_grouping_pass()`
+then routed these entries through the protected branch, resetting the
+pending merge state.
+Prevention: List-like protection must not apply to `action` entry type.
+Dash-prefixed action lines are an informal screenplay convention for
+enumerating shot sequences; they are not HTML list items and must not
+be treated as protected blocks.
+Remediation: Exclude `action` entries from `is_list_like()` or
+`is_protected_entry()` detection. Add a regression fixture covering
+a dash-prefixed action line followed by a continuation line, asserting
+both are merged into the same prose display unit.
+Status: RESOLVED
