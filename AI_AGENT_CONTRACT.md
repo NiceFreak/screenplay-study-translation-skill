@@ -111,6 +111,10 @@ During translation batch execution, AI MUST NOT:
 
 CONTINUOUS BATCH EXECUTION:
 
+User phrasing such as "预览通过，继续跑完整本" counts as explicit authorization
+for continuous batch execution when a first-batch preview has already been
+created and accepted.
+
 If the user explicitly authorizes continuous batch execution, AI MAY continue
 from one completed batch step to the next in the same conversation, provided
 each batch step:
@@ -333,7 +337,33 @@ AI MUST:
 
 -----
 
-SECTION 9 UNCERTAINTY RULE
+SECTION 9 CONTENT COMPLIANCE RULE
+
+All input materials processed by this system (PDF, subtitles, existing
+translations) are assumed to be under copyright protection.
+
+Any file whose purpose is not final output (test data, mock data, fixture
+data, example data) MUST be fully isolated from input materials.
+
+The purpose of non-output files is to verify code logic and pipeline
+structure. They MUST NOT carry real content from any input material,
+regardless of fragment length.
+
+AI MUST NOT:
+- extract any text from screenplay PDFs, subtitle files, or existing
+  translation artifacts for use in test or fixture files
+- use real character names, dialogue, scene descriptions, or plot content
+  in any test or fixture context
+- treat "short excerpt" or "just a few lines" as exempt from this rule
+
+AI MUST:
+- use only synthetic, abstract, or structurally representative data in
+  all test and fixture files
+- explicitly declare fixture files as synthetic in file-level comments
+
+-----
+
+SECTION 10 UNCERTAINTY RULE
 
 UNCERTAIN means:
 
@@ -347,7 +377,7 @@ MUST INCLUDE:
 
 -----
 
-SECTION 9.1 ASSUMPTION REPORTING RULE
+SECTION 10.1 ASSUMPTION REPORTING RULE
 
 If AI resolves ambiguity by making an assumption:
 - the assumption must be stated explicitly
@@ -359,7 +389,7 @@ Plausible explanations are not substitutes for verification.
 
 -----
 
-SECTION 10 SYSTEM IDENTITY
+SECTION 11 SYSTEM IDENTITY
 
 AI is a co-processor in a deterministic pipeline system.
 

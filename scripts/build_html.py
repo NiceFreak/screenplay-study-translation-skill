@@ -44,7 +44,7 @@ SCREEN_TEXT_RE = re.compile(
 PROJECT_CONFIG_NAME = "project.yaml"
 READER_NOTES_PATH = Path("references") / "reader_notes.md"
 FRONT_MATTER_PATH = Path("references") / "front_matter.md"
-READING_GUIDE_PATH = Path("references") / "reading_guide.md"
+SUBTITLE_LABELS_WITH_TIME = {"字幕匹配", "字幕差异"}
 
 
 class DisplayUnit(TypedDict):
@@ -152,14 +152,6 @@ html {
   margin: 0.35rem 0;
   color: var(--muted);
   font-size: 0.92rem;
-}
-
-.reading-guide {
-  margin-bottom: 28px;
-}
-
-.reading-guide h3 {
-  color: var(--accent);
 }
 
 .term-note-list {
@@ -661,11 +653,9 @@ def split_side_markers(
 
 
 def render_entry_content(entry: dict[str, Any]) -> str:
-    label = entry.get("subtitle_label")
+    label = entry_subtitle_display_label(entry)
     label_html = (
-        f'<span class="subtitle-label">{html.escape(str(label))}</span>'
-        if isinstance(label, str) and label
-        else ""
+        f'<span class="subtitle-label">{html.escape(label)}</span>' if label else ""
     )
     return render_text_paragraph(str(entry["translation"]), prefix_html=label_html)
 
@@ -888,6 +878,28 @@ def entry_subtitle_label(entry: dict[str, Any]) -> str:
     return label if isinstance(label, str) else ""
 
 
+def format_subtitle_time(value: Any) -> str:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return ""
+    total_seconds = int(value)
+    if total_seconds < 0:
+        return ""
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+    if hours:
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    return f"{minutes:02d}:{seconds:02d}"
+
+
+def entry_subtitle_display_label(entry: dict[str, Any]) -> str:
+    label = entry_subtitle_label(entry)
+    if label not in SUBTITLE_LABELS_WITH_TIME:
+        return label
+    time_label = format_subtitle_time(entry.get("subtitle_start"))
+    return f"{label} {time_label}" if time_label else label
+
+
 def merged_display_text(entries: list[dict[str, Any]]) -> str:
     return "".join(entry_translation(entry) for entry in entries).strip()
 
@@ -914,7 +926,7 @@ def can_merge_entries(previous: dict[str, Any], current: dict[str, Any]) -> bool
         return True
     return (
         previous_type == current_type == "dialogue"
-        and entry_subtitle_label(previous) == entry_subtitle_label(current)
+        and entry_subtitle_display_label(previous) == entry_subtitle_display_label(current)
     )
 
 
@@ -971,7 +983,7 @@ def render_display_unit(unit: DisplayUnit) -> str:
     entry_type = str(entry["type"])
     classes = f"entry {ENTRY_CLASS.get(entry_type, 'entry-unknown')} display-unit"
     attrs = unit_attrs(unit, classes)
-    label = entry_subtitle_label(entry)
+    label = entry_subtitle_display_label(entry)
     label_html = (
         f'<span class="subtitle-label">{html.escape(label)}</span>' if label else ""
     )
@@ -1288,7 +1300,7 @@ def body_entries(batch: dict[str, Any]) -> list[dict[str, Any]]:
     return [entry for entry in entries if isinstance(entry, dict)]
 
 
-def render_reader_note_markdown(markdown: str) -> str:
+def render_reader_note_markdown(markdown: str, list_class: str = "term-note-list") -> str:
     chunks: list[str] = []
     paragraph_lines: list[str] = []
     list_items: list[str] = []
@@ -1303,7 +1315,8 @@ def render_reader_note_markdown(markdown: str) -> str:
     def flush_list() -> None:
         if not list_items:
             return
-        chunks.append('    <ul class="term-note-list">')
+        class_attr = html.escape(list_class, quote=True)
+        chunks.append(f'    <ul class="{class_attr}">')
         chunks.extend(list_items)
         chunks.append("    </ul>")
         list_items.clear()
@@ -1408,28 +1421,6 @@ def render_reader_note(
   </section>"""
 
 
-def load_reading_guide_for_batch(
-    batch_path: Path | None, project_path: Path | None = None
-) -> str | None:
-    project_file = project_file_for_batch(batch_path, project_path)
-    if project_file is None:
-        return None
-    reading_guide_path = project_file.parent / READING_GUIDE_PATH
-    if not reading_guide_path.exists():
-        return None
-    return reading_guide_path.read_text(encoding="utf-8")
-
-
-def render_reading_guide(reading_guide_markdown: str | None) -> str:
-    if not reading_guide_markdown or not reading_guide_markdown.strip():
-        return ""
-    body = render_reader_note_markdown(reading_guide_markdown)
-    return f"""  <section class="reader-note reading-guide" aria-labelledby="reading-guide-title">
-    <h2 id="reading-guide-title">导读</h2>
-{body}
-  </section>"""
-
-
 def render_scene_index(entries: list[dict[str, Any]]) -> str:
     items = scene_index_entries(entries)
     summary = "场次索引"
@@ -1496,8 +1487,6 @@ def build_html(
     cover = render_cover(batch, source_rows, config, front_matter_markdown)
     reader_notes_markdown = load_reader_notes_for_batch(batch_path, project_path)
     note = render_reader_note(batch, reader_notes_markdown)
-    reading_guide_markdown = load_reading_guide_for_batch(batch_path, project_path)
-    reading_guide = render_reading_guide(reading_guide_markdown)
     entries = body_entries(batch)
     display_units = reflow_grouping_pass(entries)
     scene_index = render_scene_index(entries)
@@ -1514,7 +1503,6 @@ def build_html(
   <main class="screenplay-study" data-batch-id="{batch_id_attr}" data-progress-key="{progress_key_attr}">
 {cover}
 {note}
-{reading_guide}
 {scene_index}
 {body}
   </main>

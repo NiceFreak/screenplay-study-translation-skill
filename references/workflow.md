@@ -21,7 +21,7 @@ Collect:
 - user-supplied Chinese film title
 - optional subtitle path
 - source and target languages
-- desired HTML output path
+- desired HTML and EPUB output paths
 - page mapping rule
 - likely script type when known: reading draft, spec script, production draft, shooting script, teleplay, or other house format
 
@@ -49,12 +49,6 @@ After the terminology baseline, write project-local `references/reader_notes.md`
 for edition-wide reading conventions and screenplay-format professional terms.
 The renderer uses this artifact for the HTML reading note instead of deriving
 terms from each batch.
-
-`references/reading_guide.md` should normally be written after the merged
-translated batch exists and before final full-project delivery. Use
-`scripts/package_reading_guide_context.py` to prepare compact guide-writing
-context from project files instead of relying on chat history or rereading full
-project artifacts. See `references/reading_guide.md`.
 
 ## 2. Source Extraction
 
@@ -169,6 +163,10 @@ Use `scripts/draft_batch.py` to create a draft skeleton from `source-lines.json`
 
 For low-cost samples or staged translation, pass `--display-page-start` and `--display-page-end` to create a draft batch for only the requested displayed screenplay pages. This is a workflow convenience only; it must not change source extraction, marker inventory, or page mapping rules.
 
+Use `scripts/plan_batches.py` when a project would benefit from deterministic
+5-10 page range suggestions. The plan is advisory only: it does not modify
+batches, advance stages, or override the current-batch execution boundary.
+
 Before formal translation of a current batch, prefer
 `scripts/package_batch_context.py` to generate
 `work/context/batch-context-pXXX-YYY.json` for the same displayed-page range.
@@ -177,13 +175,21 @@ Use that package as the default agent context instead of reading full
 `references/batch_context.md`. If the package is insufficient, inspect only the
 specific upstream artifact slice needed for the current batch ambiguity.
 
+Use `scripts/cost_report.py` as a read-only observation tool when estimating
+token and artifact size. Its output is not billing data and must not become a
+validation gate.
+
+For final delivery, `scripts/finalize_html.py` runs `cost_report.py`
+automatically after HTML audit passes. The USD estimate uses detected or
+default model pricing metadata and may be manually overridden only when needed.
+
 Exploratory or overlapping draft batches may be created while choosing the
 formal batch range. Once the formal range is selected, delete abandoned or
 superseded draft batch files before continuing translation. Keep only the
 current batch draft and any already validated translated batches needed for the
 reader output, so later stages cannot mistake a trial batch for active work.
 
-When multiple translated batches make up one reader output, validate each batch first, then merge them with `scripts/merge_batches.py`. Do not let final HTML silently use only one 5-10 page batch as if it were the full screenplay.
+When multiple translated batches make up one reader output, validate each batch first, then merge them with `scripts/merge_batches.py`. Do not let final reader output silently use only one 5-10 page batch as if it were the full screenplay.
 
 Audit and final reader outputs must share the same formal translation text. Audit versions may expose batch IDs, structure types, marker counts, placeholder checks, and other engineering metadata. Final reader outputs should hide that noise and keep only reading aids such as page numbers, scene numbers, scene index, conventions, and necessary notes.
 
@@ -213,7 +219,6 @@ Final HTML should include:
 - user-supplied Chinese title and translated physical title-page information
   when source rows are available
 - reading note
-- reading guide from `references/reading_guide.md`
 - edition-wide format conventions and professional terms
 - conventions
 - scene index when source numbers exist, or scene-heading navigation when source numbers are absent
@@ -232,24 +237,21 @@ Final HTML should not include:
 
 ## 7. Static Publishing
 
-GitHub Pages is the natural publishing extension for v0.1 because the final artifact is static HTML.
+GitHub Pages is the natural publishing extension for the HTML reader because the
+artifact is static HTML.
 
 Static publishing should happen only after `scripts/finalize_html.py` and HTML audit pass. Keep generated project outputs out of the skill repository unless the user is intentionally publishing a specific reading edition.
 
-## 8. Optional PDF Reflow
+## 8. EPUB Mobile Output And Deprecated PDF
 
-Page-aligned PDF is no longer a target. It made the Chinese edition crowded because translated text, annotations, and subtitle labels had to fit into the same physical page as the source.
+EPUB is the supported mobile reading output in v0.3. Generate it from the final
+HTML with `scripts/export_epub.py` after the final HTML audit passes.
 
-If PDF output is deliberately reopened, treat it as a comfortable reading/print artifact:
+PDF output is deprecated. `scripts/export_pdf.py` is retained for historical
+reference only and must not be part of the normal user workflow.
 
-- allow Chinese content to reflow across A4 pages
-- use larger readable Chinese text and relaxed line spacing
-- keep source-location labels such as "原剧本第 X 页"
-- do not expose generated PDF page numbers as if they were source screenplay pages
-- do not force one translated page to match one source PDF page
-
-HTML remains the default review and delivery format.
+HTML remains the default review and desktop delivery format.
 
 ## 9. Final Audit
 
-Final audit compares source markers and HTML output. Structural failures must be fixed in extraction or generation, not by one-off manual edits to final files.
+Final audit compares source markers and HTML output before EPUB export. Structural failures must be fixed in extraction or generation, not by one-off manual edits to final files.

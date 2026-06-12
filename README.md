@@ -1,12 +1,12 @@
 # Screenplay Study Translation Skill
 
-一个用于制作中文剧本学习版的 Codex skill。它面向英文电影/剧集剧本 PDF：结合可选中文字幕，生成结构可审计、适合阅读和人工审校的中文 HTML 学习版。Codex 在这个 skill 中同时承担资深影视剧本译者和文档工程师角色；用户主要负责提供输入、确认首批风格与格式和接收最终 HTML，而不是逐行管控翻译质量。
+一个用于制作中文剧本学习版的 Codex skill。它面向英文电影/剧集剧本 PDF：结合可选中文字幕，生成结构可审计、适合阅读和人工审校的中文 HTML/EPUB 学习版。Codex 在这个 skill 中同时承担资深影视剧本译者和文档工程师角色；用户主要负责提供输入、确认首批风格与格式和接收最终成品，而不是逐行管控翻译质量。
 
 ## Scope
 
 适合：英文电影/剧集剧本 PDF，最好仍能看出场景标题、动作描述、角色名和对白结构。可以搭配中文字幕，也可以只用剧本 PDF。
 
-不适合：OCR 识别很差的扫描件、整理过度的粉丝文本、小说化改写文本，或已经看不出 screenplay 结构的文档。当前默认交付物是 HTML。
+不适合：OCR 识别很差的扫描件、整理过度的粉丝文本、小说化改写文本，或已经看不出 screenplay 结构的文档。当前默认交付物是 HTML 和 EPUB。
 
 ## Install / Update
 
@@ -31,13 +31,21 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-installer/scripts/inst
 rsync -a --delete --exclude='.git/' ./ "${CODEX_HOME:-$HOME/.codex}/skills/screenplay-study-translation/"
 ```
 
-脚本目前只依赖 Python 标准库，`requirements.txt` 不要求第三方包。安装或更新后，如 Codex 没有立刻识别新 skill，请重启 Codex。
+脚本主体使用 Python 标准库；EPUB 导出需要 `requirements.txt` 中的 `ebooklib`：
+
+```bash
+python3 -m pip install -r requirements.txt
+```
+
+安装或更新后，如 Codex 没有立刻识别新 skill，请重启 Codex。
 
 ## Use The Skill
 
 在 Codex CLI / IDE 中，可以运行 `/skills` 从列表选择 `screenplay-study-translation`，也可以在提示词里直接输入 `$screenplay-study-translation` 显式调用。普通文字里写 “使用 screenplay-study-translation skill” 通常也能触发，但发布文档和可复现流程里推荐使用 `$screenplay-study-translation`。
 
-普通使用时，不需要手动串联所有脚本。把真实项目放在 skill 仓库外，然后在 Codex 中明确给出剧本 PDF、可选字幕、输出目录和中文片名，输入内容示例：
+普通使用时，不需要手动串联所有脚本。把真实项目放在 skill 仓库外，然后在 Codex 中给出剧本 PDF、可选字幕、输出目录和中文片名即可。用户主要只需要四个动作：
+
+### 1. 生成预览
 
 ```text
 Use $screenplay-study-translation.
@@ -45,8 +53,48 @@ Use $screenplay-study-translation.
 中文字幕: /path/to/subtitles.ass
 中文片名: 示例影片
 输出目录: /path/to/output
-请制作中文剧本学习版 HTML，先生成第一批预览供我确认。
+生成预览。
 ```
+
+Codex 会新建项目，完成抽取、字幕解析、source scan、项目级术语/封面/阅读说明准备，只翻译第一批并生成 HTML 预览，然后停止等待验收。
+
+### 2. 翻译下一批
+
+```text
+Use $screenplay-study-translation.
+项目: /path/to/output/示例影片-project
+翻译下一批。
+```
+
+这表示只处理下一批并停下，不会自动跑完整本。
+
+### 3. 生成成品 HTML
+
+```text
+Use $screenplay-study-translation.
+项目: /path/to/output/示例影片-project
+生成成品 HTML。
+```
+
+Codex 会合并已验证批次，生成最终 `dist/screenplay-study.html` 并运行 audit。
+
+### 4. 导出 EPUB
+
+```text
+Use $screenplay-study-translation.
+项目: /path/to/output/示例影片-project
+导出 EPUB。
+```
+
+Codex 会从最终 HTML 生成 `dist/screenplay-study.epub`。
+
+如果第一批预览通过，并且用户想让 Codex 自动继续跑完剩余批次，可以使用这句授权语：
+
+```text
+预览通过，继续跑完整本。
+```
+
+这句话视为明确授权 continuous batch execution：Codex 会从下一批开始逐批翻译、验证和生成预览；只要没有 FAIL、UNCERTAIN、工具错误或范围不清，就自动运行到最终 HTML/EPUB 交付。
 
 中文片名是新项目必填输入，用于 HTML 封面和读者可见标题；不要从文件名、字幕名或模型判断推断。高质量中文字幕强烈建议提供，但技术上可选；没有字幕时，不输出字幕标签，AI 翻译全部元素。
 
@@ -64,7 +112,6 @@ my-film-project/
     terminology.md
     front_matter.md
     reader_notes.md
-    reading_guide.md
   work/
     source-lines.json
     source-markers.json
@@ -76,9 +123,10 @@ my-film-project/
     reports/
   dist/
     screenplay-study.html
+    screenplay-study.epub
 ```
 
-`references/terminology.md` 是项目级术语底表；`references/front_matter.md` 是封面和标题页信息的读者文本；`references/reader_notes.md` 是阅读说明和本剧本出现的专业术语说明；`references/reading_guide.md` 是全本交付时创建的读者导读页。前三者应在正式翻译前建立，后续批次复用，避免 renderer 或 agent 每批重新推断；导读在全本译文合并后生成。
+`references/terminology.md` 是项目级术语底表；`references/front_matter.md` 是封面和标题页信息的读者文本；`references/reader_notes.md` 是阅读说明和本剧本出现的专业术语说明。这些 artifact 应在正式翻译前建立，后续批次复用，避免 renderer 或 agent 每批重新推断。
 
 ## Workflow
 
@@ -87,9 +135,8 @@ my-film-project/
 3. Source scan：用 `scripts/scan_markers.py` 生成 `work/source-markers.json`，再用 `scripts/validate_sample.py` 做首轮结构验证。
 4. Setup artifacts：确认 Stage 2 后，建立项目级 terminology、front matter、reader notes 和 `work/style-profile.json`；这些是后续批次的稳定上下文。
 5. Batch translation：默认 5-10 页一批。先用 `scripts/draft_batch.py` 建当前批次草稿，再用 `scripts/package_batch_context.py` 打包当前页范围所需上下文，翻译后写入 `work/batches/translated-pXXX-YYY.json`。
-6. Batch validation and preview：每批运行 `scripts/validate_batch.py --final`，用 `scripts/build_html.py` 生成局部 HTML 预览。第一批用于确认整体风格与格式；通过后，用户可显式授权连续批次运行。
-7. Reading guide：全本交付默认执行。全本合并后，用 `scripts/package_reading_guide_context.py` 生成低成本导读上下文，再由 Codex 写入 `references/reading_guide.md`。
-8. Finalization：所有批次验证通过后，用 `scripts/merge_batches.py` 合并，再用 `scripts/finalize_html.py` 生成 `dist/screenplay-study.html` 并运行 audit。
+6. Batch validation and preview：每批运行 `scripts/validate_batch.py --final`，用 `scripts/build_html.py` 生成局部 HTML 预览。第一批用于确认整体风格与格式；通过后，用户可显式授权连续批次运行，或只说“翻译下一批”来单批推进。
+7. Finalization：所有批次验证通过后，用 `scripts/merge_batches.py` 合并，用 `scripts/finalize_html.py` 生成 `dist/screenplay-study.html` 并运行 audit，再用 `scripts/export_epub.py` 生成 `dist/screenplay-study.epub`。
 
 运行控制以 `AI_AGENT_CONTRACT.md` 为准：每批都是独立验证单元；只有用户明确授权 continuous batch execution，Codex 才能在 PASS 后自动进入下一批；遇到 FAIL、UNCERTAIN、工具错误或范围不清必须停止。
 
@@ -101,7 +148,7 @@ my-film-project/
 
 - 完整翻译 screenplay 文档：对白、动作、场景标题、角色提示、括号说明、转场、画外音、格式标记和银幕文字。
 - 使用 `.ass`、`.srt`、`.vtt` 中文字幕校准对白与风格；没有字幕时，AI 翻译全部元素。
-- 生成适合阅读和审校的 HTML：封面、阅读说明、专业术语、读者导读、场景导航、源页码、阅读进度和中文 reflow。
+- 生成适合阅读和审校的 HTML，并导出适合移动端阅读的 EPUB：封面、阅读说明、专业术语、场景导航、源页码、阅读进度和中文 reflow。
 - 保留结构审计能力：batch JSON、source markers、HTML marker attributes、batch validation 和 final audit。
 
 ## Manual Commands
@@ -125,6 +172,7 @@ python3 scripts/validate_sample.py my-film-project/project.yaml
 
 ```bash
 python3 scripts/confirm_stage2.py my-film-project/project.yaml
+python3 scripts/plan_batches.py my-film-project/project.yaml
 python3 scripts/draft_batch.py my-film-project/project.yaml --display-page-start 1 --display-page-end 5
 python3 scripts/package_batch_context.py my-film-project/project.yaml --display-page-start 1 --display-page-end 5
 ```
@@ -137,13 +185,15 @@ python3 scripts/build_html.py my-film-project/work/batches/translated-p001-005.j
 python3 scripts/audit.py my-film-project/project.yaml --html my-film-project/dist/preview-p001-005.html --display-page-start 1 --display-page-end 5
 ```
 
-合并并生成最终 HTML：
+合并并生成最终 HTML/EPUB：
 
 ```bash
-python3 scripts/merge_batches.py --batch-dir my-film-project/work/batches --output my-film-project/work/batches/translated-p001-126.json
-python3 scripts/package_reading_guide_context.py my-film-project/project.yaml --batch my-film-project/work/batches/translated-p001-126.json
+python3 scripts/merge_batches.py --batch-dir my-film-project/work/batches --output my-film-project/work/batches/translated-pXXX-YYY.json
 python3 scripts/finalize_html.py my-film-project/project.yaml my-film-project/work/batches/translated-p001-126.json
+python3 scripts/export_epub.py my-film-project/project.yaml
 ```
+
+`finalize_html.py` 会在最终 HTML 审计通过后自动导出 `work/reports/cost-report.json`，其中包含项目级 token 和美元成本估算。该报告基于本地 batch context 和译文 artifact，不是 API 账单。
 
 ## Repository Map
 
@@ -169,7 +219,7 @@ ruff check scripts
 ruff format --check scripts
 ```
 
-`scripts/smoke.py` 是主要回归检查，覆盖 extraction、marker scan、subtitle parsing、batch validation、HTML build、reflow、front matter、reader notes、reading guide context、scene-number/no-scene-number rendering、merge/finalize 和 audit。
+`scripts/smoke.py` 是主要回归检查，覆盖 extraction、marker scan、subtitle parsing、batch planning、context/cost reports、batch validation、HTML build、reflow、front matter、reader notes、scene-number/no-scene-number rendering、merge/finalize 和 audit。
 
 ## Non-goals
 

@@ -46,6 +46,8 @@ def project_yaml(
             "  marker_inventory: work/source-markers.json",
             "  subtitles_json: work/subtitles.json",
             "  html: dist/screenplay-study.html",
+            "  epub: dist/screenplay-study.epub",
+            "  # PDF output is deprecated in v0.3; export_pdf.py is reference-only.",
             "  pdf: null",
             "",
             "page_mapping:",

@@ -1,6 +1,10 @@
 {
   "version": 1,
   "batch_id": "p001-001",
+  "fixture": {
+    "kind": "synthetic",
+    "content_policy": "No production screenplay or subtitle text."
+  },
   "source_pages": {
     "start": 1,
     "end": 1

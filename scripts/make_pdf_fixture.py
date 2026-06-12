@@ -34,11 +34,11 @@ def build_pdf() -> bytes:
             text_op("73 pt2", 560, 700),
             text_op("1999", 220, 680),
             text_op("A", 560, 680),
-            text_op("MADDY (CONT'D)", 220, 650),
+            text_op("CHARACTER_ALPHA (CONT'D)", 220, 650),
             text_op("(MORE)", 290, 80),
             text_op("OMITTED", 260, 520),
-            text_op("OWEN (V.O.)", 220, 600),
-            text_op("MADDY (O.S.)", 220, 580),
+            text_op("CHARACTER_BETA (V.O.)", 220, 600),
+            text_op("CHARACTER_ALPHA (O.S.)", 220, 580),
         ]
     ).encode("latin1")
     objects = [

@@ -197,6 +197,17 @@ def main() -> int:
         code = run_step(name, command)
         if code != 0:
             return code
+
+    cost_report_code = run_step(
+        "cost_report",
+        [
+            sys.executable,
+            str(SCRIPTS_DIR / "cost_report.py"),
+            str(project),
+        ],
+    )
+    if cost_report_code != 0:
+        return cost_report_code
     print(f"INFO final_html {output}")
     return 0
 

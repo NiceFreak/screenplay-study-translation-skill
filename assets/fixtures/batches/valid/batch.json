@@ -1,6 +1,10 @@
 {
   "version": 1,
   "batch_id": "p001-002",
+  "fixture": {
+    "kind": "synthetic",
+    "content_policy": "No production screenplay or subtitle text."
+  },
   "source_pages": {
     "start": 1,
     "end": 2
@@ -12,8 +16,8 @@
       "type": "note",
       "pdf_page": 1,
       "display_page": 0,
-      "source": "Written by CASEY",
-      "translation": "编剧：__凯西__"
+      "source": "Written by AUTHOR_ALPHA",
+      "translation": "编剧：__作者甲__"
     }
   ],
   "entries": [
@@ -22,8 +26,8 @@
       "type": "scene_heading",
       "pdf_page": 2,
       "display_page": 1,
-      "source": "INT. ROOM - NIGHT",
-      "translation": "内景。__房间__ - 夜",
+      "source": "INT. TEST LOCATION - NIGHT",
+      "translation": "内景。__测试地点__ - 夜",
       "markers": [
         {
           "type": "scene_no",
@@ -42,8 +46,8 @@
       "type": "character",
       "pdf_page": 2,
       "display_page": 1,
-      "source": "CASEY (CONT'D)",
-      "translation": "凯西（续）",
+      "source": "CHARACTER_ALPHA (CONT'D)",
+      "translation": "角色甲（续）",
       "markers": [
         {
           "type": "contd",
@@ -57,15 +61,15 @@
       "pdf_page": 2,
       "display_page": 1,
       "source": "This is a synthetic line.",
-      "translation": "__凯西__听见[[敲门声]]，然后读到[[画外音]]说明。"
+      "translation": "__角色甲__收到[[提示音]]，然后读到[[屏幕文字]]说明。"
     },
     {
       "id": "p001-e004",
       "type": "action",
       "pdf_page": 2,
       "display_page": 1,
-      "source": "The room waits. *",
-      "translation": "房间静静等待。[[*]]"
+      "source": "Synthetic action fragment waits. *",
+      "translation": "合成动作片段等待。[[*]]"
     },
     {
       "id": "p002-e001",

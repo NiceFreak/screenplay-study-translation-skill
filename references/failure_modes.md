@@ -266,3 +266,21 @@ Remediation: Keep the correct contextual translation when source context
 supports the longer term. Record the warning as a known validation limitation or
 matcher evidence before changing validation behavior.
 Status: MONITORED
+
+-----
+
+## FM-016 Real Project Content Used In Test Fixtures
+
+Name: Copyright-Exposed Test Data
+Symptoms: smoke.py or fixture files contain real screenplay dialogue,
+character names, scene descriptions, or other text extracted from project
+input materials.
+Root Cause: No explicit rule prevented AI from using real project text as
+test data. The prohibition existed as intent but was not written to the
+operational level in CONTRACT or references.
+Prevention: AI_AGENT_CONTRACT Section 9 CONTENT COMPLIANCE RULE prohibits
+all use of input material text in test or fixture files.
+assets/fixtures/README.md declares that all fixture content must be synthetic.
+Remediation: Replace real content with synthetic equivalents. Run residual
+scan to confirm no real project keywords remain in scripts/ or assets/.
+Status: RESOLVED
