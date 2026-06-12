@@ -69,6 +69,21 @@ def project_yaml(
     )
 
 
+def reader_notes_markdown() -> str:
+    return "\n".join(
+        [
+            "# 阅读说明",
+            "",
+            "__下划线__用于人物、地点、片名等专名；**加粗**用于音效、银幕重点或剧本强调；*斜体*用于英文剧本术语、缩写或格式说明。",
+            "",
+            "对应原剧本显示页码；场号保留原剧本边栏编号。",
+            "",
+            "已参考提供的中文字幕，方便对照对白。",
+            "",
+        ]
+    )
+
+
 def signal_lifecycle_json() -> str:
     if SIGNAL_LIFECYCLE_TEMPLATE.exists():
         return SIGNAL_LIFECYCLE_TEMPLATE.read_text(encoding="utf-8")
@@ -139,6 +154,9 @@ def main() -> int:
     signal_lifecycle_file = project_dir / "work" / "signal" / "signal_lifecycle.json"
     if not signal_lifecycle_file.exists() or args.force:
         signal_lifecycle_file.write_text(signal_lifecycle_json(), encoding="utf-8")
+    reader_notes_file = project_dir / "references" / "reader_notes.md"
+    if not reader_notes_file.exists() or args.force:
+        reader_notes_file.write_text(reader_notes_markdown(), encoding="utf-8")
     print(f"INFO project {project_file}")
     return 0
 
