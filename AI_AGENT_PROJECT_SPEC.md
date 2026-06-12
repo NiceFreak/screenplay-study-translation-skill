@@ -54,7 +54,8 @@ Intermediate outputs:
 - extracted source markers
 - project-local terminology baseline
 - optional batch context packages
-- optional batch plan and cost observation reports
+- optional batch plan report
+- cost observation report (auto-generated at finalization)
 - translation batches (JSON)
 - validation reports
 - optional observation-only diagnostic report
