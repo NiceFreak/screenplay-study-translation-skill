@@ -133,7 +133,9 @@ These scripts support tests, fixtures, and internal validation. They should not 
 - `batch_markers.py`: derive a marker inventory from a batch for fixture and range-audit workflows
 - `make_pdf_fixture.py`: create synthetic PDF fixtures
 - `assert_marker_counts.py`: assert fixture marker counts
-- `smoke.py`: run deterministic regression tests
+- `smoke.py`: run deterministic regression tests; check definitions live in
+  `scripts/smoke_checks/`, one module per scenario, each writing its own
+  synthetic fixtures
 
 ## Quality Gates
 
