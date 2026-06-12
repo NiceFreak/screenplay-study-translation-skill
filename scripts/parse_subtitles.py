@@ -77,7 +77,9 @@ def parse_ass(path: Path) -> list[dict[str, Any]]:
             section = line[1:-1].strip().lower()
             continue
         if line.startswith("Format:"):
-            fields = [field.strip().lower() for field in line.split(":", 1)[1].split(",")]
+            fields = [
+                field.strip().lower() for field in line.split(":", 1)[1].split(",")
+            ]
             if section == "events":
                 format_fields = fields
             elif section == "v4+ styles":

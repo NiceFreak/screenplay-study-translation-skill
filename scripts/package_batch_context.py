@@ -117,7 +117,9 @@ def output_path(
     return work_dir / "context" / f"batch-context-p{start:03d}-{end:03d}.json"
 
 
-def load_source_lines(project_file: Path, config: dict[str, Any]) -> tuple[Path, list[dict[str, Any]]]:
+def load_source_lines(
+    project_file: Path, config: dict[str, Any]
+) -> tuple[Path, list[dict[str, Any]]]:
     outputs = audit.section(config, "outputs")
     source_lines_path = audit.resolve_path(
         project_file, outputs.get("source_lines") or "work/source-lines.json"
@@ -131,7 +133,9 @@ def load_source_lines(project_file: Path, config: dict[str, Any]) -> tuple[Path,
     return source_lines_path, [row for row in rows if isinstance(row, dict)]
 
 
-def load_markers(project_file: Path, config: dict[str, Any]) -> tuple[Path, dict[str, Any], list[dict[str, Any]]]:
+def load_markers(
+    project_file: Path, config: dict[str, Any]
+) -> tuple[Path, dict[str, Any], list[dict[str, Any]]]:
     inventory_path, inventory = audit.load_marker_inventory(project_file, config)
     if inventory is None:
         raise FileNotFoundError(f"marker_inventory={inventory_path}")
@@ -140,10 +144,16 @@ def load_markers(project_file: Path, config: dict[str, Any]) -> tuple[Path, dict
         markers = inventory.get("known_markers")
     if not isinstance(markers, list):
         raise ValueError("marker inventory markers must be a list")
-    return inventory_path, inventory, [marker for marker in markers if isinstance(marker, dict)]
+    return (
+        inventory_path,
+        inventory,
+        [marker for marker in markers if isinstance(marker, dict)],
+    )
 
 
-def load_subtitles(project_file: Path, config: dict[str, Any]) -> tuple[Path | None, list[dict[str, Any]]]:
+def load_subtitles(
+    project_file: Path, config: dict[str, Any]
+) -> tuple[Path | None, list[dict[str, Any]]]:
     outputs = audit.section(config, "outputs")
     subtitles_path = audit.resolve_path(
         project_file, outputs.get("subtitles_json") or "work/subtitles.json"
@@ -157,7 +167,9 @@ def load_subtitles(project_file: Path, config: dict[str, Any]) -> tuple[Path | N
     return subtitles_path, [event for event in events if isinstance(event, dict)]
 
 
-def load_style_profile(project_file: Path, config: dict[str, Any]) -> tuple[Path | None, dict[str, Any]]:
+def load_style_profile(
+    project_file: Path, config: dict[str, Any]
+) -> tuple[Path | None, dict[str, Any]]:
     outputs = audit.section(config, "outputs")
     work_dir = audit.resolve_path(project_file, outputs.get("work_dir") or "work")
     if work_dir is None:
@@ -288,7 +300,9 @@ def build_draft_entries(
     start: int,
     end: int,
 ) -> list[dict[str, Any]]:
-    batch = draft_batch.batch_from_lines(project_file, config, rows, markers, start, end)
+    batch = draft_batch.batch_from_lines(
+        project_file, config, rows, markers, start, end
+    )
     entries = batch.get("entries")
     if not isinstance(entries, list):
         return []
@@ -355,18 +369,20 @@ def source_dialogue_units(source_entries: list[dict[str, Any]]) -> list[dict[str
             previous_type = entry_type
             continue
         text = str(entry.get("source") or "").strip()
-        dialogue_context = (
-            entry_type == "dialogue"
-            or (
-                entry_type in {"parenthetical", "action"}
-                and current_speaker is not None
-                and previous_type in {"character", "parenthetical"}
-                and bool(text)
-            )
+        dialogue_context = entry_type == "dialogue" or (
+            entry_type in {"parenthetical", "action"}
+            and current_speaker is not None
+            and previous_type in {"character", "parenthetical"}
+            and bool(text)
         )
         if not dialogue_context:
             current = None
-            if entry_type in {"scene_heading", "transition", "format_marker", "page_heading"}:
+            if entry_type in {
+                "scene_heading",
+                "transition",
+                "format_marker",
+                "page_heading",
+            }:
                 current_speaker = None
             previous_type = str(entry_type or "")
             continue
@@ -466,9 +482,7 @@ def subtitle_matches_for_units(
             {
                 "score": round(score, 3),
                 "match_confidence": (
-                    "high"
-                    if score >= SUBTITLE_HIGH_CONFIDENCE_SCORE
-                    else "low"
+                    "high" if score >= SUBTITLE_HIGH_CONFIDENCE_SCORE else "low"
                 ),
                 "event_index": index,
                 "event": compact_subtitle_event(event),
@@ -659,7 +673,9 @@ def relevant_terms(
     terms = parse_terminology_rows(path)
     if not terms:
         return []
-    source_text = text_blob([str(entry.get("source") or "") for entry in source_entries])
+    source_text = text_blob(
+        [str(entry.get("source") or "") for entry in source_entries]
+    )
     source_key = normalize_token(source_text)
     style_tendencies = style_profile.get("terminology_tendencies")
     tendency_set = {
@@ -743,7 +759,9 @@ def continuity_context(project_file: Path, start: int) -> dict[str, Any]:
     entries = payload.get("entries")
     if not isinstance(entries, list):
         entries = []
-    tail_entries = [entry for entry in entries[-MAX_CONTINUITY_ENTRIES:] if isinstance(entry, dict)]
+    tail_entries = [
+        entry for entry in entries[-MAX_CONTINUITY_ENTRIES:] if isinstance(entry, dict)
+    ]
     tail_type_counts: dict[str, int] = {}
     tail_speakers: list[str] = []
     compact_entries: list[dict[str, Any]] = []
@@ -805,7 +823,9 @@ def build_package(
     marker_path, inventory, markers = load_markers(project_file, config)
     subtitles_path, subtitles = load_subtitles(project_file, config)
     style_path, style = load_style_profile(project_file, config)
-    source_entries = build_draft_entries(project_file, config, rows, markers, start, end)
+    source_entries = build_draft_entries(
+        project_file, config, rows, markers, start, end
+    )
     dialogue_units = source_dialogue_units(source_entries)
     terminology_pairs = relevant_terms(project_file, source_entries, style)
 
@@ -874,7 +894,9 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.display_page_start > args.display_page_end:
-        parser.error("--display-page-start must be less than or equal to --display-page-end")
+        parser.error(
+            "--display-page-start must be less than or equal to --display-page-end"
+        )
     if args.overlap_pages < 0:
         parser.error("--overlap-pages must be non-negative")
 

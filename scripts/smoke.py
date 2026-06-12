@@ -120,8 +120,8 @@ def run_check(
 def main() -> int:
     python = sys.executable
     env = os.environ.copy()
-    env.setdefault("PYTHONPYCACHEPREFIX", "/private/tmp/codex-pycache")
     tmp_dir = Path(tempfile.mkdtemp(prefix="screenplay-skill-smoke-"))
+    env.setdefault("PYTHONPYCACHEPREFIX", str(tmp_dir / "pycache"))
     env.setdefault("RUFF_CACHE_DIR", str(tmp_dir / "ruff-cache"))
     pdf_scan_project = tmp_dir / "pdf-scan-project.yaml"
     pdf_scan_source = tmp_dir / "source.pdf"
@@ -760,11 +760,20 @@ def main() -> int:
     (reflow_project_dir / "references" / "reader_notes.md").write_text(
         "\n".join(
             [
+                "# 阅读说明",
+                "",
                 "下划线用于人物、地点、片名等专名；**加粗**用于音效、银幕重点或剧本强调；*斜体*用于英文剧本术语、缩写或格式说明。",
                 "",
                 "对应原剧本显示页码；场号保留原剧本边栏编号。",
                 "",
                 "已参考提供的中文字幕，方便对照对白。",
+                "",
+                "## 格式约定",
+                "",
+                "| English | Chinese | Notes |",
+                "|---------|---------|-------|",
+                "| CONT'D | 续 | 同一说话者或同一格式块延续。 |",
+                "| MORE | 下页续 | 页尾对白延续提示。 |",
                 "",
                 "### 本剧本出现的专业术语",
                 "",
@@ -978,6 +987,22 @@ def main() -> int:
                         "source": "This additional synthetic line appears later.",
                         "translation": "这句补充合成对白显示时间较靠后。",
                         "subtitle_label": "字幕未见",
+                    },
+                    {
+                        "id": "r009",
+                        "type": "action",
+                        "pdf_page": 13,
+                        "display_page": 12,
+                        "source": "- A child's mouth opens wide, a huge gap between teeth",
+                        "translation": "- 一个孩子大张着嘴，门牙之间露出巨大的",
+                    },
+                    {
+                        "id": "r010",
+                        "type": "action",
+                        "pdf_page": 13,
+                        "display_page": 12,
+                        "source": "gap, tiny tongue clearly hanging in view.",
+                        "translation": "缺口，小舌头清清楚楚地垂在视野里。",
                     },
                 ],
             }
@@ -1286,6 +1311,22 @@ def main() -> int:
                     "\n        failed.append(index)"
                     "\nraise SystemExit('content stream exact length failed: ' + "
                     "repr(failed) if failed else 0)"
+                ),
+            ],
+        },
+        {
+            "name": "scan_markers_tj_array_text",
+            "command": [
+                python,
+                "-c",
+                (
+                    "import sys; "
+                    f"sys.path.insert(0, {str(SCRIPTS_DIR)!r}); "
+                    "import scan_markers; "
+                    "stream=b'BT 1 0 0 1 72 720 Tm /F1 12 Tf [(OM) -10 (ITTED)] TJ ET'; "
+                    "ops=scan_markers.iter_text_ops(stream); "
+                    "text=scan_markers.pdf_unescape(ops[0]['text']) if ops else ''; "
+                    "raise SystemExit(0 if text == 'OMITTED' else f'TJ array text mismatch: {text!r}')"
                 ),
             ],
         },
@@ -2385,13 +2426,18 @@ def main() -> int:
                     "'编剧：<span class=\"proper-name\">作者甲</span>（Author Alpha）', "
                     "'改编自<span class=\"proper-name\">作者乙</span>（Author Beta）的合成文本', "
                     "'class=\"entry scene-heading scene-heading-no-markers\"', "
-                    "'<div id=\"r000\" class=\"entry scene-heading scene-heading-no-markers\"', "
+                    '\'<div id="r000" class="entry scene-heading scene-heading-no-markers"\', '
                     "'data-source-entry-ids=\"r004,r005\"', '<span class=\"subtitle-label\">字幕匹配 00:02</span>', "
+                    "'data-source-entry-ids=\"r009,r010\"', "
+                    "'- 一个孩子大张着嘴，门牙之间露出巨大的缺口，小舌头清清楚楚地垂在视野里。', "
+                    "'格式约定', '<table>', '<th>English</th>', '<td>CONT&#x27;D</td>', "
                     "'本剧本出现的专业术语', '行尾星号（*）']; "
                     "forbidden=['标题页信息：', '<p>Screenplay by</p>', '<p>Author Alpha</p>', '<span class=\"subtitle-label\">字幕未见 00:', "
-                    "'id=\"r000\" class=\"entry scene-heading scene-heading-no-markers\" data-source-entry-ids=\"r000\" data-entry-type=\"scene_heading\" data-pdf-page=\"13\" data-display-page=\"12\"><span class=\"scene-marker-slot']; "
+                    "'<h3>阅读说明</h3>', '| English | Chinese | Notes |', "
+                    '\'id="r000" class="entry scene-heading scene-heading-no-markers" data-source-entry-ids="r000" data-entry-type="scene_heading" data-pdf-page="13" data-display-page="12"><span class="scene-marker-slot\']; '
                     "missing=[item for item in required if item not in text]; "
                     "bad=[item for item in forbidden if item in text]; "
+                    "bad += ['reader-note-title-count'] if text.count('>阅读说明<') != 1 else []; "
                     "missing += ['forbidden present: '+repr(bad)] if bad else []; "
                     "raise SystemExit('reflow html missing: '+repr(missing) if missing else 0)"
                 ),
@@ -2419,12 +2465,12 @@ def main() -> int:
                     "'<strong class=\"emphasis\">加粗</strong>用于音效、银幕重点或剧本强调', "
                     "'<em class=\"term\">斜体</em>用于英文剧本术语、缩写或格式说明', "
                     "'1 · 内景。<span class=\"proper-name\">测试地点</span> - 夜', "
-                    "'<span class=\"scene-marker-slot scene-marker-left\"><span class=\"marker marker-scene_no scene-no\" data-marker-type=\"scene_no\" data-marker-position=\"left\">1</span></span>', "
-                    "'<span class=\"scene-marker-slot scene-marker-right\"><span class=\"marker marker-scene_no scene-no\" data-marker-type=\"scene_no\" data-marker-position=\"right\">1</span></span>', "
+                    '\'<span class="scene-marker-slot scene-marker-left"><span class="marker marker-scene_no scene-no" data-marker-type="scene_no" data-marker-position="left">1</span></span>\', '
+                    '\'<span class="scene-marker-slot scene-marker-right"><span class="marker marker-scene_no scene-no" data-marker-type="scene_no" data-marker-position="right">1</span></span>\', '
                     "'<span class=\"proper-name\">角色甲</span>', "
                     "'<span class=\"reader-annotation\">提示音</span>', "
                     "'<span class=\"reader-annotation\">屏幕文字</span>', "
-                    "'<p class=\"entry-line-with-revision-asterisk\"><span class=\"entry-line-text\">合成动作片段等待。</span><span class=\"revision-asterisk\" aria-label=\"源剧本修订星号\">*</span></p>']; "
+                    '\'<p class="entry-line-with-revision-asterisk"><span class="entry-line-text">合成动作片段等待。</span><span class="revision-asterisk" aria-label="源剧本修订星号">*</span></p>\']; '
                     "forbidden=[]; "
                     "missing=[item for item in required + progress if item not in text]; "
                     "bad=[item for item in forbidden if item in text]; "

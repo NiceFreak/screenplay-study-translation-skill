@@ -280,7 +280,9 @@ def main() -> int:
     confirmation_path = stage_gate.confirmation_path(project_file, config)
     if not confirmation_path.exists():
         print("Stage 2 signal confirmation not found.")
-        print("Run confirm_stage2.py after source signal scan before creating draft batches.")
+        print(
+            "Run confirm_stage2.py after source signal scan before creating draft batches."
+        )
         return 1
     confirmed, confirmation_lines = stage_gate.check_stage2_confirmation(
         project_file, config

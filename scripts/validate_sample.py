@@ -101,7 +101,9 @@ def write_marker_inventory(
         raise FileNotFoundError(f"screenplay_pdf={pdf_path}")
     offset = int(page_mapping.get("displayed_page_offset", 0))
     scan = scan_markers.scan_pdf_detailed(pdf_path, offset)
-    out_path = scan_markers.write_inventory(project_file, config, scan.known_markers, scan)
+    out_path = scan_markers.write_inventory(
+        project_file, config, scan.known_markers, scan
+    )
     return out_path, scan.known_markers
 
 
@@ -115,7 +117,9 @@ def scan_and_write_inventory(
         raise FileNotFoundError(f"screenplay_pdf={pdf_path}")
     offset = int(page_mapping.get("displayed_page_offset", 0))
     scan = scan_markers.scan_pdf_detailed(pdf_path, offset)
-    out_path = scan_markers.write_inventory(project_file, config, scan.known_markers, scan)
+    out_path = scan_markers.write_inventory(
+        project_file, config, scan.known_markers, scan
+    )
     return out_path, scan.known_markers, scan
 
 

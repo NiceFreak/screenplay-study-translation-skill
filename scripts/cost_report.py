@@ -338,12 +338,8 @@ def build_cost_estimate(
         estimate["missing_required_inputs"] = missing
         return estimate
 
-    input_usd = (
-        input_tokens / 1_000_000 * config.input_usd_per_million_tokens
-    )
-    output_usd = (
-        output_tokens / 1_000_000 * config.output_usd_per_million_tokens
-    )
+    input_usd = input_tokens / 1_000_000 * config.input_usd_per_million_tokens
+    output_usd = output_tokens / 1_000_000 * config.output_usd_per_million_tokens
     estimate.update(
         {
             "input_usd_per_million_tokens": config.input_usd_per_million_tokens,

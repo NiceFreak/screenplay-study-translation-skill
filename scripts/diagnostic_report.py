@@ -25,8 +25,10 @@ FAILURE_MODE_RE = re.compile(r"^## (FM-\d{3})\b", re.MULTILINE)
 
 
 def diagnostic_path(project_file: Path, config: dict[str, Any]) -> Path:
-    return stage_gate.work_dir_path(project_file, config) / "diagnostic" / (
-        "diagnostic_report.json"
+    return (
+        stage_gate.work_dir_path(project_file, config)
+        / "diagnostic"
+        / ("diagnostic_report.json")
     )
 
 
@@ -107,9 +109,7 @@ def key_signals(log: dict[str, Any], path: Path | None) -> list[dict[str, str]]:
 
 
 def available_failure_modes() -> set[str]:
-    path = Path(__file__).resolve().parent.parent / "references" / (
-        "failure_modes.md"
-    )
+    path = Path(__file__).resolve().parent.parent / "references" / ("failure_modes.md")
     if not path.exists():
         return set()
     return set(FAILURE_MODE_RE.findall(path.read_text(encoding="utf-8")))
@@ -232,9 +232,7 @@ def recommended_checks(
             "Review warning_signal entries in work/reports/sample-validation.txt."
         )
     if "noise_signal.candidate" in signal_names:
-        checks.append(
-            "Keep noise_signal candidates as traceability evidence only."
-        )
+        checks.append("Keep noise_signal candidates as traceability evidence only.")
     if system_state == "FAIL":
         checks.append("Review Stage 1-2 validation artifacts before continuing.")
     return checks
