@@ -25,17 +25,9 @@ cheap deterministic verification.
 
 ## Before asking AI to change code: fill this brief
 
-Copy this, fill it in, and give it to the agent. If you cannot fill in
-**Acceptance**, the requirement is not clear enough to code yet — clarify first.
-
-```
-## Task brief
-- Goal:        <one sentence: what is true after this change>
-- Scope:       <the specific file(s)/function(s) to touch — name them>
-- Acceptance:  <how it is verified done — e.g. "smoke green + grep X in output">
-- Out of scope:<what NOT to touch and what NOT to add>
-- Model:       <cheap model for mechanical edits / strong model for design>
-```
+Copy the fill-in brief from `references/task_brief_template.md`, complete it, and
+give it to the agent. If you cannot fill in **Acceptance**, the requirement is
+not clear enough to code yet — clarify first.
 
 ## The loop
 
