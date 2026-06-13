@@ -86,6 +86,33 @@ Mark as `字幕差异` when the difference changes:
 - action
 - scene context
 
+## Machine Pre-Confirmation, Anchors, And Unseen Scenes
+
+`scripts/package_batch_context.py` may pre-confirm the obvious majority so the
+model only adjudicates the rest. This is cost control, not a new authority:
+
+- A unit is auto-confirmed (`auto_label: 字幕匹配`) only when a single
+  high-confidence lexical candidate **also advances monotonically in subtitle
+  time**. Two independent signals must agree. Such units may reuse the subtitle
+  Chinese at `reuse_event_index` without re-judging.
+- Order is a confirmation signal only, never the sole authority. A
+  high-confidence candidate that jumps backward past the slack window is marked
+  `order_conflict` and left to the model, so an out-of-order subtitle file
+  simply falls back to full semantic judgment instead of being mis-aligned.
+- This works because bilingual (Chinese+English) subtitles let the English half
+  drive lexical matching. With pure-Chinese subtitles few candidates qualify, so
+  auto-confirmation rarely fires and behavior is unchanged.
+
+`scene_anchors` give one timecode per scene: the subtitle start of that scene's
+first auto-confirmed line. It is a **dialogue landmark for manual film seeking,
+not a scene start time** — a long dialogue-free opening makes it land later than
+the scene boundary.
+
+`字幕未见` stays a single honest state. The text alone cannot tell "never
+filmed" from "filmed but dialogue cut"; `unseen_hints` only offers a
+low-confidence guess from neighbor timecode gaps. Never turn it into a confirmed
+`未拍摄`/`删台词` label — point the reader to the film to confirm.
+
 ## Without Subtitles
 
 Do not emit subtitle labels. AI translates all elements and may use terminology
