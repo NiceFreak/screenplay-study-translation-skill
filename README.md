@@ -1,12 +1,27 @@
 # Screenplay Study Translation Skill
 
-一个用于制作中文剧本学习版的 Codex skill。它面向英文电影/剧集剧本 PDF：结合可选中文字幕，生成结构可审计、适合阅读和人工审校的中文 HTML/EPUB 学习版。Codex 在这个 skill 中同时承担资深影视剧本译者和文档工程师角色；用户主要负责提供输入、确认首批风格与格式和接收最终成品，而不是逐行管控翻译质量。
+把英文电影 / 剧集的剧本 PDF，做成**结构可审计、便于阅读和人工审校的中文剧本学习版**（HTML + EPUB）。它结合可选的中文字幕，在保留剧本原有结构（场景标题、动作描述、角色、对白、格式标记）的前提下完成翻译。
+
+在整个过程中，AI 同时扮演资深影视剧本译者和文档工程师；你只需要提供输入、确认第一批的风格与格式、并验收成品，而不必逐行盯着翻译质量。
+
+> **它不绑定某一个平台。** 这是一个遵循通用 **Agent Skill / `AGENTS.md`** 约定的技能，可以在 **Claude Code**、**OpenAI Codex** 等支持该约定的 AI 编程助手里安装使用。下文「Use The Skill」一节的示例以 Codex 语法（`$skill`）书写，换成其它助手时把调用方式替换成对应写法即可，工作流程完全一致。
+
+## 它不只是「一个技能」
+
+「技能」只是它的入口。仓库里真正沉淀下来的，是一整套**把剧本翻译当作软件工程来做**的方法和工具——即使完全不经过 AI 助手、纯手动运行脚本，它也是一条可复现的剧本翻译工具链：
+
+- **一条可审计的流水线**：PDF 抽取 → 标记扫描 → 分批翻译 → 逐批校验 → 生成 HTML/EPUB → 终审。每一步都有脚本和检查，而不是把整本剧本丢给模型黑箱产出。
+- **明确的 AI 行为契约**（`AI_AGENT_CONTRACT.md`）：规定批次边界、停止条件和人工复核点，防止模型擅自跑飞或跳过验证。
+- **静态流程规范**（`AI_AGENT_PROJECT_SPEC.md`）：固定每个阶段产出的文件和数据结构。
+- **二十多个 Python 脚本**：抽取、扫描、打包上下文、校验、构建、合并、审计、成本估算等，主体只依赖标准库。
+- **领域知识库**（`references/`）：行业剧本格式惯例、术语表、校验规则、排障与设计决策。
+- **合成 fixture + 回归测试 + CI**：全部用不含版权的合成数据，保证流程可复现、可回归。
 
 ## Scope
 
-适合：英文电影/剧集剧本 PDF，最好仍能看出场景标题、动作描述、角色名和对白结构。可以搭配中文字幕，也可以只用剧本 PDF。
+适合：英文电影 / 剧集剧本 PDF，最好仍能看出场景标题、动作描述、角色名和对白结构。可以搭配中文字幕，也可以只用剧本 PDF。
 
-不适合：OCR 识别很差的扫描件、整理过度的粉丝文本、小说化改写文本，或已经看不出 screenplay 结构的文档。当前默认交付物是 HTML 和 EPUB。
+不适合：OCR 识别很差的扫描件、整理过度的粉丝文本、小说化改写文本，或已经看不出剧本结构的文档。当前默认交付物是 HTML 和 EPUB。
 
 ## Install / Update
 
@@ -142,7 +157,7 @@ my-film-project/
 
 ## Human Review Model
 
-用户不需要逐行复核翻译质量。推荐审查点是：第一批 HTML 用来确认整体风格、格式还原、阅读体验和术语口径；最终 HTML 用来做成品接受。中间批次应由 Codex 以最终质量意图翻译并自行验证，除非 validation 返回 FAIL/UNCERTAIN 或出现高影响歧义。
+用户不需要逐行复核翻译质量。推荐的审查点只有两个：第一批 HTML 用来确认整体风格、格式还原、阅读体验和术语口径；最终 HTML 用来做成品验收。中间批次由 AI 译者以最终质量意图翻译并自行验证，除非校验返回 FAIL/UNCERTAIN 或出现高影响歧义才需要人工介入。
 
 ## What It Handles
 
@@ -198,17 +213,18 @@ python3 scripts/export_epub.py my-film-project/project.yaml
 ## Repository Map
 
 ```text
-SKILL.md                    # 翻译、提取和输出原则
+SKILL.md                    # 翻译、提取和输出原则（技能入口）
 AI_AGENT_CONTRACT.md        # AI 运行时边界和批次控制规则
 AI_AGENT_PROJECT_SPEC.md    # 静态 pipeline 和 artifact 描述
-AGENTS.md                   # Codex 启动引导
-agents/openai.yaml          # Codex UI 元数据
+AGENTS.md                   # 通用 agent 启动引导（Claude Code、Codex 等）
+agents/openai.yaml          # Codex 平台的 UI 元数据
 assets/                     # 示例配置和合成 fixture
+examples/                   # 端到端可复现的快速上手示例（合成剧本）
 references/                 # 工作流、术语、校验、行业惯例、排障和设计决策
 scripts/                    # 抽取、扫描、打包、校验、构建、合并和审计脚本
 ```
 
-本仓库只存放 skill、脚本、规则和合成 fixture。不要提交真实剧本 PDF、字幕文件或生成的真实项目 `work/`、`dist/` 成果。
+本仓库只存放技能本体、脚本、规则和合成 fixture。请不要提交真实剧本 PDF、字幕文件，或生成的真实项目 `work/`、`dist/` 成果。
 
 ## Development Checks
 

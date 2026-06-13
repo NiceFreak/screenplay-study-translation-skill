@@ -29,3 +29,8 @@ assets/*.vtt
 # PDF scan smoke generates these in a temporary directory; keep them out if run manually.
 assets/fixtures/pdf-scan/source.pdf
 assets/fixtures/pdf-scan/work/
+
+# Example walkthroughs commit their config and translated batch; generated PDF/work/dist are not committed.
+examples/**/source/
+examples/**/work/
+examples/**/dist/
