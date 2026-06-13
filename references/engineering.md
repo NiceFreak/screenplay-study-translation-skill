@@ -19,6 +19,7 @@ This skill should be maintained like software, not a pile of one-off scripts.
   logs; keep real `work/signal/` logs ignored as generated project output.
 - Do not let mechanical formatting debt accumulate. Run Ruff on touched scripts when practical.
 - Keep pure formatting changes separate from behavioral changes so reviews can distinguish style churn from logic changes.
+- Drive AI-assisted changes through a task brief and a plan-before-code gate to avoid avoidable rework; see `references/ai_change_workflow.md`.
 
 ## Test And Fixture Data Compliance
 
