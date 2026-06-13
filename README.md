@@ -219,6 +219,7 @@ AI_AGENT_PROJECT_SPEC.md    # 静态 pipeline 和 artifact 描述
 AGENTS.md                   # 通用 agent 启动引导（Claude Code、Codex 等）
 agents/openai.yaml          # Codex 平台的 UI 元数据
 assets/                     # 示例配置和合成 fixture
+examples/                   # 端到端可复现的快速上手示例（合成剧本）
 references/                 # 工作流、术语、校验、行业惯例、排障和设计决策
 scripts/                    # 抽取、扫描、打包、校验、构建、合并和审计脚本
 ```

@@ -1,0 +1,191 @@
+{
+  "version": 1,
+  "batch_id": "translated-p001-002",
+  "source_pages": {
+    "start": 1,
+    "end": 2
+  },
+  "has_subtitles": false,
+  "fixture": {
+    "kind": "synthetic",
+    "content_policy": "Original demonstration content. No real screenplay or subtitle text."
+  },
+  "front_matter": [
+    {
+      "id": "front-001",
+      "type": "note",
+      "pdf_page": 1,
+      "display_page": 0,
+      "source": "THE TIDE CLERK",
+      "translation": "片名：__潮汐记录员__（原文 THE TIDE CLERK）"
+    },
+    {
+      "id": "front-002",
+      "type": "note",
+      "pdf_page": 1,
+      "display_page": 0,
+      "source": "Written by",
+      "translation": "编剧"
+    },
+    {
+      "id": "front-003",
+      "type": "note",
+      "pdf_page": 1,
+      "display_page": 0,
+      "source": "A. SYNTHETIC",
+      "translation": "__A·辛塞蒂__"
+    },
+    {
+      "id": "front-004",
+      "type": "note",
+      "pdf_page": 1,
+      "display_page": 0,
+      "source": "Demonstration Draft",
+      "translation": "演示稿"
+    }
+  ],
+  "entries": [
+    {
+      "id": "p001-e005",
+      "type": "scene_heading",
+      "pdf_page": 2,
+      "display_page": 1,
+      "source": "INT. TIDE STATION - NIGHT",
+      "translation": "内景。__潮汐站__ — 夜",
+      "markers": [
+        {"type": "scene_no", "text": "1", "scene_no": "1", "position": "left"},
+        {"type": "scene_no", "text": "1", "scene_no": "1", "position": "right"}
+      ]
+    },
+    {
+      "id": "p001-e006",
+      "type": "action",
+      "pdf_page": 2,
+      "display_page": 1,
+      "source": "Rain hammers the windows. MARA, 30s, logs the",
+      "translation": "雨点狠狠砸在窗户上。__玛拉__，三十多岁，借着灯光记录着"
+    },
+    {
+      "id": "p001-e007",
+      "type": "action",
+      "pdf_page": 2,
+      "display_page": 1,
+      "source": "water level by lamplight.",
+      "translation": "水位。"
+    },
+    {
+      "id": "p001-e008",
+      "type": "character",
+      "pdf_page": 2,
+      "display_page": 1,
+      "source": "MARA",
+      "translation": "__玛拉__"
+    },
+    {
+      "id": "p001-e009",
+      "type": "parenthetical",
+      "pdf_page": 2,
+      "display_page": 1,
+      "source": "(not looking up)",
+      "translation": "（没有抬头）"
+    },
+    {
+      "id": "p001-e010",
+      "type": "dialogue",
+      "pdf_page": 2,
+      "display_page": 1,
+      "source": "The tide came early again.",
+      "translation": "潮水又提前来了。"
+    },
+    {
+      "id": "p001-e011",
+      "type": "character",
+      "pdf_page": 2,
+      "display_page": 1,
+      "source": "MARA (CONT'D)",
+      "translation": "__玛拉__（接前）",
+      "markers": [
+        {"type": "contd", "text": "(CONT'D)"}
+      ]
+    },
+    {
+      "id": "p001-e012",
+      "type": "dialogue",
+      "pdf_page": 2,
+      "display_page": 1,
+      "source": "Three nights running. Same hour.",
+      "translation": "连着三个晚上。都在同一个钟点。"
+    },
+    {
+      "id": "p001-e013",
+      "type": "transition",
+      "pdf_page": 2,
+      "display_page": 1,
+      "source": "CUT TO:",
+      "translation": "切至："
+    },
+    {
+      "id": "p002-e014",
+      "type": "scene_heading",
+      "pdf_page": 3,
+      "display_page": 2,
+      "source": "EXT. PIER - DAWN",
+      "translation": "外景。__码头__ — 黎明",
+      "markers": [
+        {"type": "scene_no", "text": "2", "scene_no": "2", "position": "left"},
+        {"type": "scene_no", "text": "2", "scene_no": "2", "position": "right"}
+      ]
+    },
+    {
+      "id": "p002-e015",
+      "type": "action",
+      "pdf_page": 3,
+      "display_page": 2,
+      "source": "Grey light. The flat water looks wrong.",
+      "translation": "灰蒙蒙的天光。平静的水面透着说不出的不对劲。"
+    },
+    {
+      "id": "p002-e016",
+      "type": "character",
+      "pdf_page": 3,
+      "display_page": 2,
+      "source": "ELIAS (V.O.)",
+      "translation": "__埃利亚斯__（画外音）",
+      "markers": [
+        {"type": "voice_or_position", "text": "(V.O.)"}
+      ]
+    },
+    {
+      "id": "p002-e017",
+      "type": "dialogue",
+      "pdf_page": 3,
+      "display_page": 2,
+      "source": "You wrote it down. Good girl.",
+      "translation": "你都记下来了。好姑娘。"
+    },
+    {
+      "id": "p002-e018",
+      "type": "format_marker",
+      "pdf_page": 3,
+      "display_page": 2,
+      "source": "OMITTED",
+      "translation": "本场删去",
+      "markers": [
+        {"type": "scene_no", "text": "3", "scene_no": "3", "position": "left"},
+        {"type": "omitted", "text": "OMITTED"},
+        {"type": "scene_no", "text": "3", "scene_no": "3", "position": "right"}
+      ]
+    },
+    {
+      "id": "p002-e019",
+      "type": "format_marker",
+      "pdf_page": 3,
+      "display_page": 2,
+      "source": "(MORE)",
+      "translation": "（接下页）",
+      "markers": [
+        {"type": "more", "text": "(MORE)"}
+      ]
+    }
+  ]
+}
