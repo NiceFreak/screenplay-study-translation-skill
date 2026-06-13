@@ -95,6 +95,9 @@ MAX_RELEVANT_TERMS = 80
 MAX_STYLE_TERMS = 20
 MAX_CONTINUITY_ENTRIES = 8
 MAX_WARNING_SIGNALS = 40
+ORDER_BACK_SLACK = 3
+AUTO_CONFIRM_MIN_SCORE = SUBTITLE_HIGH_CONFIDENCE_SCORE
+UNSEEN_GAP_NOT_FILMED_SECONDS = 5.0
 
 
 def load_json(path: Path) -> Any:
@@ -582,21 +585,195 @@ def subtitle_timestamps(matches: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return timestamps
 
 
+def annotate_order_and_autoconfirm(
+    matches: list[dict[str, Any]], order_seed: int | None
+) -> dict[str, Any]:
+    """Pre-confirm unique high-confidence matches that also advance in time.
+
+    Order is only ever a confirmation signal layered on top of lexical
+    evidence. A high-confidence candidate that jumps backward past the slack
+    window is flagged as a conflict and left for the model, so an out-of-order
+    subtitle file degrades to today's behavior instead of being mis-aligned.
+    """
+    last_confirmed = order_seed if isinstance(order_seed, int) else -1
+    auto_confirmed = 0
+    order_conflicts = 0
+    for match in matches:
+        candidates = match.get("candidates")
+        if not isinstance(candidates, list) or len(candidates) != 1:
+            continue
+        candidate = candidates[0]
+        event_index = candidate.get("event_index")
+        score = candidate.get("score") or 0.0
+        if not isinstance(event_index, int):
+            continue
+        forward = event_index >= last_confirmed - ORDER_BACK_SLACK
+        candidate["order_consistent"] = bool(forward)
+        if score >= AUTO_CONFIRM_MIN_SCORE and forward:
+            match["auto_label"] = "字幕匹配"
+            match["reuse_event_index"] = event_index
+            last_confirmed = max(last_confirmed, event_index)
+            auto_confirmed += 1
+        elif score >= AUTO_CONFIRM_MIN_SCORE:
+            match["order_conflict"] = True
+            order_conflicts += 1
+    return {
+        "auto_confirmed": auto_confirmed,
+        "order_conflicts": order_conflicts,
+        "order_seed_event_index": order_seed,
+    }
+
+
+def scene_no_from_entry(entry: dict[str, Any]) -> str | None:
+    markers = entry.get("markers")
+    if not isinstance(markers, list):
+        return None
+    for marker in markers:
+        if isinstance(marker, dict) and marker.get("type") in {
+            "scene_no",
+            "split_scene",
+        }:
+            value = marker.get("scene_no") or marker.get("text")
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    return None
+
+
+def autoconfirmed_candidate(match: dict[str, Any]) -> dict[str, Any] | None:
+    if match.get("auto_label") != "字幕匹配":
+        return None
+    candidates = match.get("candidates")
+    if isinstance(candidates, list) and candidates:
+        return candidates[0]
+    return None
+
+
+def scene_dialogue_anchors(
+    source_entries: list[dict[str, Any]], matches: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """One reliable timecode landmark per scene: its first auto-confirmed line.
+
+    The timecode is the spoken line's subtitle start, not the scene start. A
+    long dialogue-free opening makes it land later than the scene boundary, so
+    it is presented as a landmark to seek near, never as a scene start time.
+    """
+    match_by_entry: dict[str, dict[str, Any]] = {}
+    for match in matches:
+        for entry_id in match.get("entry_ids") or []:
+            if isinstance(entry_id, str):
+                match_by_entry.setdefault(entry_id, match)
+    anchors: list[dict[str, Any]] = []
+    current: dict[str, Any] | None = None
+    for entry in source_entries:
+        if entry.get("type") == "scene_heading":
+            if current is not None:
+                anchors.append(current)
+            current = {
+                "scene_entry_id": entry.get("id"),
+                "scene_no": scene_no_from_entry(entry),
+                "display_page": entry.get("display_page"),
+                "anchor_entry_ids": None,
+                "subtitle_event_index": None,
+                "subtitle_start": None,
+            }
+            continue
+        if current is None or current["subtitle_start"] is not None:
+            continue
+        entry_id = entry.get("id")
+        if not isinstance(entry_id, str):
+            continue
+        match = match_by_entry.get(entry_id)
+        if match is None:
+            continue
+        candidate = autoconfirmed_candidate(match)
+        if candidate is None:
+            continue
+        event = candidate.get("event")
+        start = event.get("start") if isinstance(event, dict) else None
+        if not isinstance(start, (int, float)):
+            continue
+        current["anchor_entry_ids"] = match.get("entry_ids")
+        current["subtitle_event_index"] = candidate.get("event_index")
+        current["subtitle_start"] = start
+    if current is not None:
+        anchors.append(current)
+    return anchors
+
+
+def unseen_scene_hints(scene_anchors: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Low-confidence internal cue for scenes with no reliable dialogue anchor.
+
+    Brackets the unanchored scene by its nearest anchored neighbors and offers a
+    coarse not-filmed/dialogue-cut guess from the neighbor time gap. Advisory
+    only: the text signals cannot separate "never filmed" from "filmed but
+    dialogue cut", so the film remains the authority.
+    """
+    count = len(scene_anchors)
+    hints: list[dict[str, Any]] = []
+    for index, anchor in enumerate(scene_anchors):
+        if anchor.get("subtitle_start") is not None:
+            continue
+        previous_time = None
+        for j in range(index - 1, -1, -1):
+            value = scene_anchors[j].get("subtitle_start")
+            if isinstance(value, (int, float)):
+                previous_time = value
+                break
+        next_time = None
+        for j in range(index + 1, count):
+            value = scene_anchors[j].get("subtitle_start")
+            if isinstance(value, (int, float)):
+                next_time = value
+                break
+        hint: dict[str, Any] = {
+            "scene_entry_id": anchor.get("scene_entry_id"),
+            "scene_no": anchor.get("scene_no"),
+            "window_start": previous_time,
+            "window_end": next_time,
+            "confidence": "low",
+            "reason_hint": "unconfirmed_no_dialogue_anchor",
+        }
+        if isinstance(previous_time, (int, float)) and isinstance(
+            next_time, (int, float)
+        ):
+            gap = next_time - previous_time
+            hint["neighbor_gap_seconds"] = round(gap, 3)
+            hint["reason_hint"] = (
+                "likely_not_filmed"
+                if gap <= UNSEEN_GAP_NOT_FILMED_SECONDS
+                else "possible_dialogue_cut"
+            )
+        hints.append(hint)
+    return hints
+
+
 def subtitle_candidates(
     events: list[dict[str, Any]],
     dialogue_units: list[dict[str, Any]],
     term_pairs: list[dict[str, str]],
+    order_seed: int | None = None,
+    source_entries: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     if not events:
         return {
             "available": False,
             "summary": {"dialogue_unit_count": len(dialogue_units)},
+            "auto_confirm_summary": {
+                "auto_confirmed": 0,
+                "order_conflicts": 0,
+                "order_seed_event_index": order_seed,
+            },
             "advisory_matches": [],
+            "scene_anchors": [],
+            "unseen_hints": [],
             "unique_subtitle_timestamps": [],
             "fallback_events": [],
             "selection_note": "subtitles not configured",
         }
     matches = subtitle_matches_for_units(events, dialogue_units, term_pairs)
+    auto_confirm_summary = annotate_order_and_autoconfirm(matches, order_seed)
+    scene_anchors = scene_dialogue_anchors(source_entries or [], matches)
+    unseen_hints = unseen_scene_hints(scene_anchors)
     matched_count = sum(len(match.get("candidates") or []) for match in matches)
     timestamps = unique_subtitle_timestamps(matches)
     all_timestamps = subtitle_timestamps(matches)
@@ -606,26 +783,35 @@ def subtitle_candidates(
             "dialogue_unit_count": len(dialogue_units),
             "advisory_match_units_included": len(matches),
             "matched_candidate_count": matched_count,
+            "auto_confirmed_unit_count": auto_confirm_summary["auto_confirmed"],
+            "order_conflict_unit_count": auto_confirm_summary["order_conflicts"],
+            "scene_anchor_count": len(scene_anchors),
+            "unseen_hint_count": len(unseen_hints),
             "unique_timestamp_count": len(timestamps),
             "timestamp_count": len(all_timestamps),
             "candidate_limit_total": MAX_SUBTITLE_MATCHES,
             "candidate_limit_per_unit": MAX_SUBTITLE_CANDIDATES_PER_UNIT,
         },
         "selection": {
-            "method": "global_source_text_and_terminology_search",
+            "method": "lexical_match_with_monotonic_timecode_confirmation",
             "event_count_total": len(events),
             "matched_candidate_count": matched_count,
             "confidence": "advisory",
         },
+        "auto_confirm_summary": auto_confirm_summary,
         "advisory_matches": matches,
+        "scene_anchors": scene_anchors,
+        "unseen_hints": unseen_hints,
         "unique_subtitle_timestamps": timestamps,
         "subtitle_timestamps": all_timestamps,
         "fallback_events": [],
         "selection_note": (
-            "Subtitle candidates are searched across the full subtitle file "
-            "without assuming screenplay order matches subtitle order. They are "
-            "compact advisory evidence; semantic expression-unit judgment "
-            "remains required."
+            "Lexical candidates are confirmed only when a unique high-confidence "
+            "match also advances monotonically in subtitle time; agreeing units "
+            "carry auto_label and may be reused directly. Order is a confirmation "
+            "signal, never the sole authority, so out-of-order subtitles fall "
+            "back to model judgment. Remaining units still require semantic "
+            "expression-unit judgment."
         ),
     }
 
@@ -782,6 +968,15 @@ def continuity_context(project_file: Path, start: int) -> dict[str, Any]:
                 "subtitle_label": entry.get("subtitle_label"),
             }
         )
+    previous_event_indices = [
+        entry.get("subtitle_event_index")
+        for entry in entries
+        if isinstance(entry, dict)
+        and isinstance(entry.get("subtitle_event_index"), int)
+    ]
+    previous_max_event_index = (
+        max(previous_event_indices) if previous_event_indices else None
+    )
     return {
         "previous_batch": str(path),
         "previous_batch_id": payload.get("batch_id"),
@@ -790,6 +985,7 @@ def continuity_context(project_file: Path, start: int) -> dict[str, Any]:
             "tail_entries_included": len(compact_entries),
             "tail_entry_types": tail_type_counts,
             "tail_speakers": tail_speakers[:6],
+            "previous_max_subtitle_event_index": previous_max_event_index,
         },
         "entries": compact_entries,
     }
@@ -800,6 +996,10 @@ def batch_notes() -> list[str]:
         "Use this package as the default translation context for the current batch.",
         "Do not read full source-lines.json, full subtitles.json, or full marker inventory unless this package is insufficient.",
         "Subtitle events are advisory candidates; use semantic expression-unit matching for dialogue labels.",
+        "Units marked auto_label='字幕匹配' were pre-confirmed by agreeing lexical and monotonic-timecode signals; reuse the subtitle Chinese at reuse_event_index without re-judging, and only adjudicate the rest.",
+        "Units with order_conflict, low-confidence candidates, or no candidate still require semantic expression-unit judgment.",
+        "scene_anchors timecodes mark the approximate position of a scene's first spoken line in the film (a dialogue landmark), not the scene start time.",
+        "unseen_hints are low-confidence internal cues (scene possibly not filmed or dialogue cut); never treat them as a confirmed label, and verify against the film.",
         "This package is not a validation gate and does not replace batch JSON validation.",
     ]
 
@@ -828,6 +1028,10 @@ def build_package(
     )
     dialogue_units = source_dialogue_units(source_entries)
     terminology_pairs = relevant_terms(project_file, source_entries, style)
+    continuity = continuity_context(project_file, start)
+    order_seed = (continuity.get("summary") or {}).get(
+        "previous_max_subtitle_event_index"
+    )
 
     package = {
         "version": 1,
@@ -854,7 +1058,11 @@ def build_package(
         "markers": markers_excerpt(markers, start, end, overlap),
         "signals": signals_from_inventory(inventory, start, end, overlap),
         "subtitle_candidates": subtitle_candidates(
-            subtitles, dialogue_units, terminology_pairs
+            subtitles,
+            dialogue_units,
+            terminology_pairs,
+            order_seed=order_seed,
+            source_entries=source_entries,
         ),
         "terminology": {
             "relevant_terms": terminology_pairs,
@@ -864,7 +1072,7 @@ def build_package(
             ),
         },
         "style_summary": style_summary(style),
-        "continuity": continuity_context(project_file, start),
+        "continuity": continuity,
         "agent_notes": batch_notes(),
     }
     if include_source_rows:
