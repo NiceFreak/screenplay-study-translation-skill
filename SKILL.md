@@ -155,6 +155,7 @@ Read only what the task needs:
 - `references/workflow.md` — end-to-end project workflow
 - `references/configuration.md` — project configuration
 - `references/engineering.md` — scripts and tooling
+- `references/cost.md` — translation cost model and clean measurement
 
 **Source structure:**
 
