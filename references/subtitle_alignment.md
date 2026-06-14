@@ -91,17 +91,23 @@ Mark as `字幕差异` when the difference changes:
 `scripts/package_batch_context.py` may pre-confirm the obvious majority so the
 model only adjudicates the rest. This is cost control, not a new authority:
 
-- A unit is auto-confirmed (`auto_label: 字幕匹配`) only when a single
-  high-confidence lexical candidate **also advances monotonically in subtitle
-  time**. Two independent signals must agree. Such units may reuse the subtitle
-  Chinese at `reuse_event_index` without re-judging.
-- Order is a confirmation signal only, never the sole authority. A
-  high-confidence candidate that jumps backward past the slack window is marked
-  `order_conflict` and left to the model, so an out-of-order subtitle file
-  simply falls back to full semantic judgment instead of being mis-aligned.
+- A unit is auto-confirmed (`auto_label: 字幕匹配`) only when it has a single
+  **near-identical (substring) candidate** — the compacted source line is
+  contained in the subtitle's text. Such units may reuse the subtitle Chinese at
+  `reuse_event_index` without re-judging.
+- Subtitle time order is **advisory only, never a veto**. Films cut and reorder
+  dialogue, so screenplay order does not track subtitle order. A confirmed line
+  that runs backward in time is flagged `order_relocated` (the film kept it but
+  moved it) and still reused; order is recorded as `order_consistent` and used
+  only to break ties between multiple candidates.
+- Similar-but-not-identical candidates (high score but not a substring) and
+  multi-candidate units are **left to the model**, so a reworded line surfaces
+  as `字幕差异` instead of being silently confirmed as `字幕匹配`. Discovering
+  those differences is a primary reason to read the screenplay, so they must not
+  be hidden.
 - This works because bilingual (Chinese+English) subtitles let the English half
-  drive lexical matching. With pure-Chinese subtitles few candidates qualify, so
-  auto-confirmation rarely fires and behavior is unchanged.
+  drive substring matching. With pure-Chinese subtitles few candidates qualify,
+  so auto-confirmation rarely fires and behavior is unchanged.
 
 `scene_anchors` give one timecode per scene: the subtitle start of that scene's
 first auto-confirmed line. It is a **dialogue landmark for manual film seeking,

@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
-"""Bilingual-subtitle auto-confirm, scene anchor, and unseen-hint checks.
+"""Subtitle auto-confirm, scene anchor, and unseen-hint checks.
 
-Exercises the package_batch_context pre-confirm functions directly on in-memory
-synthetic bilingual data (no project scaffolding needed): ideal in-order matches
-auto-confirm, a planted out-of-order line flags order_conflict, an unanchored
-scene yields an advisory unseen hint, and pure-Chinese subtitles do not
-auto-confirm (no regression).
+Exercises the package_batch_context pre-confirm functions on in-memory synthetic
+bilingual data (no project scaffolding needed):
+
+- a unique near-identical (substring) match auto-confirms even when it runs
+  backward in subtitle time (films cut and reorder dialogue), and is flagged
+  order_relocated rather than rejected;
+- a similar-but-not-identical match (full term overlap but not a substring,
+  including a hidden-negation line) does NOT auto-confirm, so a reworded line is
+  left for the model to mark as 字幕差异;
+- an unanchored scene yields an advisory unseen hint;
+- pure-Chinese subtitles do not auto-confirm (no regression).
 """
 
 from __future__ import annotations
@@ -17,9 +23,8 @@ from smoke_checks.common import SCRIPTS_DIR, SmokeCheck
 ASSERT_BODY = """
 import package_batch_context as p
 
-# Distinct bilingual events in time order; English half drives lexical matching,
-# Chinese half is the reusable translation. Distinct vocabulary => one event per
-# source, so each match has exactly one candidate.
+# Distinct long bilingual events in time order; the English half (>=16 compacted
+# chars) drives substring matching, the Chinese half is the reusable translation.
 EN = [
     "alpha bravo charlie delta echo foxtrot golf hotel",
     "india juliet kilo lima mike november oscar papa",
@@ -33,56 +38,67 @@ events = [
     for i in range(len(EN))
 ]
 
-# In-order units, plus one planted out-of-order unit matching event 0 last.
-units = [
-    {"speaker": "A", "entry_ids": ["d0"], "display_pages": [1], "source": EN[0]},
-    {"speaker": "A", "entry_ids": ["d1"], "display_pages": [1], "source": EN[1]},
-    {"speaker": "B", "entry_ids": ["d4"], "display_pages": [2], "source": EN[4]},
-    {"speaker": "B", "entry_ids": ["d5"], "display_pages": [2], "source": EN[5]},
-    {"speaker": "C", "entry_ids": ["dx"], "display_pages": [3], "source": EN[0]},
-]
+def unit(eid, src):
+    return {"speaker": "A", "entry_ids": [eid], "display_pages": [1], "source": src}
+
+# Test A: in-order substring matches auto-confirm; a backward (relocated) one
+# still auto-confirms instead of being vetoed.
+units = [unit("d0", EN[0]), unit("d1", EN[1]), unit("d2", EN[5]), unit("dx", EN[0])]
 matches = p.subtitle_matches_for_units(events, units, [])
 summary = p.annotate_order_and_autoconfirm(matches, None)
 
 if summary["auto_confirmed"] != 4:
     raise SystemExit("auto_confirmed=" + str(summary["auto_confirmed"]) + " expected 4")
-if summary["order_conflicts"] != 1:
-    raise SystemExit("order_conflicts=" + str(summary["order_conflicts"]) + " expected 1")
+if summary["relocations"] != 1:
+    raise SystemExit("relocations=" + str(summary["relocations"]) + " expected 1")
 if matches[0].get("auto_label") != "字幕匹配":
     raise SystemExit("first unit not auto-confirmed")
-if matches[4].get("auto_label") is not None:
-    raise SystemExit("out-of-order unit was auto-confirmed")
-if matches[4].get("order_conflict") is not True:
-    raise SystemExit("out-of-order unit missing order_conflict")
+if matches[3].get("auto_label") != "字幕匹配":
+    raise SystemExit("relocated unit should still auto-confirm")
+if matches[3].get("order_relocated") is not True:
+    raise SystemExit("relocated unit missing order_relocated")
+if matches[3]["candidates"][0].get("order_consistent") is not False:
+    raise SystemExit("relocated unit should be order-inconsistent")
+if matches[0]["candidates"][0].get("substring") is not True:
+    raise SystemExit("near-identical match missing substring flag")
 
-# Scene anchors + unseen hint: scene 2 has an unmatched line -> no anchor.
-units2 = [
-    {"speaker": "A", "entry_ids": ["da"], "display_pages": [1], "source": EN[0]},
-    {"speaker": "A", "entry_ids": ["db"], "display_pages": [2],
-     "source": "unrelated gibberish zzzqqq nomatchhere"},
-    {"speaker": "B", "entry_ids": ["dc"], "display_pages": [3], "source": EN[2]},
+# Test B: full term overlap but NOT a substring (reordered + a hidden negation)
+# must not auto-confirm, so a reworded line stays for the model.
+events_b = [
+    {"start": 0.0, "end": 3.0, "text": "we quietly sell the family farm 我们悄悄卖掉农场"},
+    {"start": 5.0, "end": 8.0, "text": "I will sell the harbor tonight 我今晚会卖掉港口"},
 ]
-matches2 = p.subtitle_matches_for_units(events, units2, [])
-p.annotate_order_and_autoconfirm(matches2, None)
+units_b = [
+    unit("b0", "sell the family farm quietly tonight"),
+    unit("b1", "I will not sell the harbor tonight"),
+]
+matches_b = p.subtitle_matches_for_units(events_b, units_b, [])
+summary_b = p.annotate_order_and_autoconfirm(matches_b, None)
+if summary_b["auto_confirmed"] != 0:
+    raise SystemExit("similar-not-identical auto_confirmed=" + str(summary_b["auto_confirmed"]))
+for m in matches_b:
+    if not m.get("candidates"):
+        raise SystemExit("expected a high-score candidate for term-overlap unit")
+    if m["candidates"][0].get("substring") is not False:
+        raise SystemExit("term-overlap candidate wrongly flagged substring")
+    if "auto_label" in m:
+        raise SystemExit("term-overlap/negation unit must not auto-confirm")
 
-def heading(entry_id, scene_no, page):
-    return {
-        "id": entry_id,
-        "type": "scene_heading",
-        "display_page": page,
-        "markers": [{"type": "scene_no", "text": scene_no,
-                     "scene_no": scene_no, "position": "left"}],
-    }
+# Test C: scene anchors land on auto-confirmed lines; an unmatched scene -> hint.
+units_sc = [unit("da", EN[0]), unit("db", "unrelated gibberish zzzqqq nomatchhere"), unit("dc", EN[2])]
+matches_sc = p.subtitle_matches_for_units(events, units_sc, [])
+p.annotate_order_and_autoconfirm(matches_sc, None)
+
+def heading(eid, no, page):
+    return {"id": eid, "type": "scene_heading", "display_page": page,
+            "markers": [{"type": "scene_no", "text": no, "scene_no": no, "position": "left"}]}
 
 source_entries = [
-    heading("s1", "1", 1),
-    {"id": "da", "type": "dialogue", "display_page": 1},
-    heading("s2", "2", 2),
-    {"id": "db", "type": "dialogue", "display_page": 2},
-    heading("s3", "3", 3),
-    {"id": "dc", "type": "dialogue", "display_page": 3},
+    heading("s1", "1", 1), {"id": "da", "type": "dialogue", "display_page": 1},
+    heading("s2", "2", 2), {"id": "db", "type": "dialogue", "display_page": 2},
+    heading("s3", "3", 3), {"id": "dc", "type": "dialogue", "display_page": 3},
 ]
-anchors = p.scene_dialogue_anchors(source_entries, matches2)
+anchors = p.scene_dialogue_anchors(source_entries, matches_sc)
 if len(anchors) != 3:
     raise SystemExit("anchor count=" + str(len(anchors)) + " expected 3")
 if anchors[0]["subtitle_start"] != 0.0:
@@ -93,28 +109,18 @@ if anchors[2]["subtitle_start"] != 20.0:
     raise SystemExit("scene 3 anchor start=" + str(anchors[2]["subtitle_start"]))
 
 hints = p.unseen_scene_hints(anchors)
-if len(hints) != 1:
-    raise SystemExit("unseen hint count=" + str(len(hints)) + " expected 1")
-hint = hints[0]
-if hint["scene_no"] != "2":
-    raise SystemExit("hint scene_no=" + str(hint["scene_no"]))
-if hint["window_start"] != 0.0 or hint["window_end"] != 20.0:
-    raise SystemExit("hint window mismatch")
-if hint["confidence"] != "low":
-    raise SystemExit("hint should be low confidence")
+if len(hints) != 1 or hints[0]["scene_no"] != "2":
+    raise SystemExit("unseen hint mismatch")
+if hints[0]["window_start"] != 0.0 or hints[0]["window_end"] != 20.0:
+    raise SystemExit("unseen window mismatch")
+if hints[0]["confidence"] != "low":
+    raise SystemExit("unseen hint should be low confidence")
 
-# Pure-Chinese subtitles: lexical signals collapse -> no auto-confirm (no regression).
-zh_events = [
-    {"start": i * 10.0, "end": i * 10.0 + 3.0, "text": "纯中文台词" + str(i)}
-    for i in range(3)
-]
-zh_units = [
-    {"speaker": "A", "entry_ids": ["z0"], "display_pages": [1], "source": EN[0]},
-]
-zh_matches = p.subtitle_matches_for_units(zh_events, zh_units, [])
-zh_summary = p.annotate_order_and_autoconfirm(zh_matches, None)
-if zh_summary["auto_confirmed"] != 0:
-    raise SystemExit("pure-Chinese auto_confirmed=" + str(zh_summary["auto_confirmed"]))
+# Test D: pure-Chinese subtitles -> no substring evidence -> no auto-confirm.
+zh_events = [{"start": i * 10.0, "end": i * 10.0 + 3.0, "text": "纯中文台词" + str(i)} for i in range(3)]
+zh_matches = p.subtitle_matches_for_units(zh_events, [unit("z0", EN[0])], [])
+if p.annotate_order_and_autoconfirm(zh_matches, None)["auto_confirmed"] != 0:
+    raise SystemExit("pure-Chinese auto-confirmed")
 
 raise SystemExit(0)
 """
