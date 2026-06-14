@@ -162,9 +162,10 @@ BATCH CONTEXT PACKAGES:
 - advisory subtitle candidates inside the package do not determine
   `字幕匹配`, `字幕差异`, or `字幕未见` by themselves; semantic expression-unit
   judgment still applies, EXCEPT units the package marks
-  `auto_label: 字幕匹配` — a unique high-confidence lexical match that also
-  advances monotonically in subtitle time — which MAY be reused at
-  `reuse_event_index` without re-judging; adjudicate every other unit
+  `auto_label: 字幕匹配` — a unique near-identical (substring) match — which MAY
+  be reused at `reuse_event_index` without re-judging, even if `order_relocated`
+  is set; adjudicate every other unit, and a reworded line MUST become
+  `字幕差异`, not `字幕匹配` (subtitle time order is advisory, never a veto)
 - `unseen_hints` (possible not-filmed vs dialogue-cut) are low-confidence
   internal cues only; never promote them into a confirmed label, and never add
   `未拍摄`/`删台词` as subtitle labels — `字幕未见` stays a single honest state,

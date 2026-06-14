@@ -96,7 +96,6 @@ MAX_STYLE_TERMS = 20
 MAX_CONTINUITY_ENTRIES = 8
 MAX_WARNING_SIGNALS = 40
 ORDER_BACK_SLACK = 3
-AUTO_CONFIRM_MIN_SCORE = SUBTITLE_HIGH_CONFIDENCE_SCORE
 UNSEEN_GAP_NOT_FILMED_SECONDS = 5.0
 
 
@@ -463,6 +462,19 @@ def compact_subtitle_event(event: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def candidate_is_substring(source_compact: str, event: dict[str, Any]) -> bool:
+    """Near-identical match: the compacted source line is contained in the event.
+
+    This is the safe auto-confirm signal: inserting or changing a word (for
+    example a negation) breaks containment, so a reworded line is not treated as
+    identical and stays for the model to judge as 字幕匹配 or 字幕差异.
+    """
+    if len(source_compact) < 16:
+        return False
+    event_compact = normalized_compact(subtitle_event_text(event))
+    return bool(source_compact) and source_compact in event_compact
+
+
 def subtitle_matches_for_units(
     events: list[dict[str, Any]],
     dialogue_units: list[dict[str, Any]],
@@ -481,12 +493,14 @@ def subtitle_matches_for_units(
             if score >= SUBTITLE_MID_CONFIDENCE_SCORE
         ]
         candidates.sort(key=lambda item: (-item[0], subtitle_event_sort_key(item[2])))
+        source_compact = normalized_compact(str(unit.get("source") or ""))
         compact_candidates = [
             {
                 "score": round(score, 3),
                 "match_confidence": (
                     "high" if score >= SUBTITLE_HIGH_CONFIDENCE_SCORE else "low"
                 ),
+                "substring": candidate_is_substring(source_compact, event),
                 "event_index": index,
                 "event": compact_subtitle_event(event),
             }
@@ -588,38 +602,43 @@ def subtitle_timestamps(matches: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def annotate_order_and_autoconfirm(
     matches: list[dict[str, Any]], order_seed: int | None
 ) -> dict[str, Any]:
-    """Pre-confirm unique high-confidence matches that also advance in time.
+    """Auto-confirm unique near-identical (substring) matches; order is advisory.
 
-    Order is only ever a confirmation signal layered on top of lexical
-    evidence. A high-confidence candidate that jumps backward past the slack
-    window is flagged as a conflict and left for the model, so an out-of-order
-    subtitle file degrades to today's behavior instead of being mis-aligned.
+    A film cuts and reorders dialogue, so subtitle time order is not a reliable
+    proxy for screenplay order. Auto-confirmation therefore rests on lexical
+    near-identity (a unique substring match), not on monotonic order. Order is
+    recorded as ``order_consistent`` for information and counted as a relocation
+    when a confirmed line runs backward in time, but it never vetoes a match.
+    Similar-but-not-identical candidates (high score yet not a substring) and
+    multi-candidate units are left to the model, so a reworded line surfaces as
+    字幕差异 instead of being silently confirmed as 字幕匹配.
     """
     last_confirmed = order_seed if isinstance(order_seed, int) else -1
     auto_confirmed = 0
-    order_conflicts = 0
+    relocations = 0
     for match in matches:
         candidates = match.get("candidates")
         if not isinstance(candidates, list) or len(candidates) != 1:
             continue
         candidate = candidates[0]
         event_index = candidate.get("event_index")
-        score = candidate.get("score") or 0.0
         if not isinstance(event_index, int):
             continue
         forward = event_index >= last_confirmed - ORDER_BACK_SLACK
         candidate["order_consistent"] = bool(forward)
-        if score >= AUTO_CONFIRM_MIN_SCORE and forward:
-            match["auto_label"] = "字幕匹配"
-            match["reuse_event_index"] = event_index
+        if not candidate.get("substring"):
+            continue
+        match["auto_label"] = "字幕匹配"
+        match["reuse_event_index"] = event_index
+        auto_confirmed += 1
+        if forward:
             last_confirmed = max(last_confirmed, event_index)
-            auto_confirmed += 1
-        elif score >= AUTO_CONFIRM_MIN_SCORE:
-            match["order_conflict"] = True
-            order_conflicts += 1
+        else:
+            match["order_relocated"] = True
+            relocations += 1
     return {
         "auto_confirmed": auto_confirmed,
-        "order_conflicts": order_conflicts,
+        "relocations": relocations,
         "order_seed_event_index": order_seed,
     }
 
@@ -760,7 +779,7 @@ def subtitle_candidates(
             "summary": {"dialogue_unit_count": len(dialogue_units)},
             "auto_confirm_summary": {
                 "auto_confirmed": 0,
-                "order_conflicts": 0,
+                "relocations": 0,
                 "order_seed_event_index": order_seed,
             },
             "advisory_matches": [],
@@ -784,7 +803,7 @@ def subtitle_candidates(
             "advisory_match_units_included": len(matches),
             "matched_candidate_count": matched_count,
             "auto_confirmed_unit_count": auto_confirm_summary["auto_confirmed"],
-            "order_conflict_unit_count": auto_confirm_summary["order_conflicts"],
+            "relocated_unit_count": auto_confirm_summary["relocations"],
             "scene_anchor_count": len(scene_anchors),
             "unseen_hint_count": len(unseen_hints),
             "unique_timestamp_count": len(timestamps),
@@ -793,7 +812,7 @@ def subtitle_candidates(
             "candidate_limit_per_unit": MAX_SUBTITLE_CANDIDATES_PER_UNIT,
         },
         "selection": {
-            "method": "lexical_match_with_monotonic_timecode_confirmation",
+            "method": "lexical_near_identity_autoconfirm_order_advisory",
             "event_count_total": len(events),
             "matched_candidate_count": matched_count,
             "confidence": "advisory",
@@ -806,12 +825,12 @@ def subtitle_candidates(
         "subtitle_timestamps": all_timestamps,
         "fallback_events": [],
         "selection_note": (
-            "Lexical candidates are confirmed only when a unique high-confidence "
-            "match also advances monotonically in subtitle time; agreeing units "
-            "carry auto_label and may be reused directly. Order is a confirmation "
-            "signal, never the sole authority, so out-of-order subtitles fall "
-            "back to model judgment. Remaining units still require semantic "
-            "expression-unit judgment."
+            "A unique near-identical (substring) match is auto-confirmed and may "
+            "be reused directly, regardless of subtitle time order, because films "
+            "cut and reorder dialogue. Order is advisory only (order_consistent / "
+            "order_relocated), never a veto. Similar-but-not-identical candidates "
+            "and multi-candidate units are left for the model so reworded lines "
+            "surface as 字幕差异 rather than being silently confirmed."
         ),
     }
 
@@ -996,8 +1015,8 @@ def batch_notes() -> list[str]:
         "Use this package as the default translation context for the current batch.",
         "Do not read full source-lines.json, full subtitles.json, or full marker inventory unless this package is insufficient.",
         "Subtitle events are advisory candidates; use semantic expression-unit matching for dialogue labels.",
-        "Units marked auto_label='字幕匹配' were pre-confirmed by agreeing lexical and monotonic-timecode signals; reuse the subtitle Chinese at reuse_event_index without re-judging, and only adjudicate the rest.",
-        "Units with order_conflict, low-confidence candidates, or no candidate still require semantic expression-unit judgment.",
+        "Units marked auto_label='字幕匹配' are unique near-identical (substring) matches; reuse the subtitle Chinese at reuse_event_index without re-judging, even if order_relocated is set (the film kept the line but moved it).",
+        "Similar-but-not-identical candidates (high score, no substring), multi-candidate units, low-confidence candidates, and no-candidate units still require semantic expression-unit judgment; a reworded line should become 字幕差异, not 字幕匹配.",
         "scene_anchors timecodes mark the approximate position of a scene's first spoken line in the film (a dialogue landmark), not the scene start time.",
         "unseen_hints are low-confidence internal cues (scene possibly not filmed or dialogue cut); never treat them as a confirmed label, and verify against the film.",
         "This package is not a validation gate and does not replace batch JSON validation.",
