@@ -28,7 +28,7 @@ from smoke_checks import (
     checks_sample_project,
     checks_static_fixtures,
     checks_style_profile,
-    checks_subtitle_autoconfirm,
+    checks_subtitle_candidates,
     checks_subtitles,
     checks_terminology,
 )
@@ -47,9 +47,9 @@ CHECK_MODULES = [
     checks_merge,
     checks_html_output,
     checks_static_fixtures,
-    checks_subtitle_autoconfirm,
     checks_divergence_render,
     checks_paren_reflow,
+    checks_subtitle_candidates,
 ]
 
 

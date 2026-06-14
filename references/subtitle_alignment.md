@@ -94,38 +94,19 @@ Mark as `字幕差异` when the difference changes:
 - action
 - scene context
 
-## Machine Pre-Confirmation, Anchors, And Unseen Scenes
+## Advisory Candidates
 
-`scripts/package_batch_context.py` may pre-confirm the obvious majority so the
-model only adjudicates the rest. This is cost control, not a new authority:
+`scripts/package_batch_context.py` attaches advisory lexical candidates to each
+dialogue unit (top matches with score and subtitle text). They are evidence
+only — the model decides `字幕匹配` / `字幕差异` / `字幕未见` by semantic
+expression-unit judgment. A matched line may reuse the candidate subtitle's
+Chinese; a reworded line is `字幕差异`; a line with no candidate is `字幕未见`.
 
-- A unit is auto-confirmed (`auto_label: 字幕匹配`) only when it has a single
-  **near-identical (substring) candidate** — the compacted source line is
-  contained in the subtitle's text. Such units may reuse the subtitle Chinese at
-  `reuse_event_index` without re-judging.
-- Subtitle time order is **advisory only, never a veto**. Films cut and reorder
-  dialogue, so screenplay order does not track subtitle order. A confirmed line
-  that runs backward in time is flagged `order_relocated` (the film kept it but
-  moved it) and still reused; order is recorded as `order_consistent` and used
-  only to break ties between multiple candidates.
-- Similar-but-not-identical candidates (high score but not a substring) and
-  multi-candidate units are **left to the model**, so a reworded line surfaces
-  as `字幕差异` instead of being silently confirmed as `字幕匹配`. Discovering
-  those differences is a primary reason to read the screenplay, so they must not
-  be hidden.
-- This works because bilingual (Chinese+English) subtitles let the English half
-  drive substring matching. With pure-Chinese subtitles few candidates qualify,
-  so auto-confirmation rarely fires and behavior is unchanged.
+`字幕未见` stays a single honest state. The text alone cannot tell "never filmed"
+from "filmed but dialogue cut" — point the reader to the film to confirm.
 
-`scene_anchors` give one timecode per scene: the subtitle start of that scene's
-first auto-confirmed line. It is a **dialogue landmark for manual film seeking,
-not a scene start time** — a long dialogue-free opening makes it land later than
-the scene boundary.
-
-`字幕未见` stays a single honest state. The text alone cannot tell "never
-filmed" from "filmed but dialogue cut"; `unseen_hints` only offers a
-low-confidence guess from neighbor timecode gaps. Never turn it into a confirmed
-`未拍摄`/`删台词` label — point the reader to the film to confirm.
+When a candidate is a stable match, the model may persist `subtitle_start` on the
+dialogue entry; it feeds the scene-level timecode in the HTML.
 
 ## Without Subtitles
 

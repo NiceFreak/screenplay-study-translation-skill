@@ -160,18 +160,13 @@ BATCH CONTEXT PACKAGES:
 - it is not a pipeline stage, validation gate, repair mechanism, or source of
   new rules
 - advisory subtitle candidates inside the package do not determine
-  `字幕匹配`, `字幕差异`, or `字幕未见` by themselves; semantic expression-unit
-  judgment still applies, EXCEPT units the package marks
-  `auto_label: 字幕匹配` — a unique near-identical (substring) match — which MAY
-  be reused at `reuse_event_index` without re-judging, even if `order_relocated`
-  is set; adjudicate every other unit, and a reworded line MUST become
-  `字幕差异`, not `字幕匹配` (subtitle time order is advisory, never a veto)
-- `unseen_hints` (possible not-filmed vs dialogue-cut) are low-confidence
-  internal cues only; never promote them into a confirmed label, and never add
-  `未拍摄`/`删台词` as subtitle labels — `字幕未见` stays a single honest state,
-  verified against the film
-- `scene_anchors` timecodes are dialogue-line landmarks for manual film
-  seeking, not scene start times
+  `字幕匹配`, `字幕差异`, or `字幕未见`; the AI decides them by semantic
+  expression-unit judgment. A matched line may reuse the candidate subtitle's
+  Chinese; a reworded line MUST become `字幕差异`, not `字幕匹配`; a line with no
+  candidate is `字幕未见`
+- `字幕未见` stays a single honest state; never invent `未拍摄`/`删台词` labels —
+  the text cannot separate "not filmed" from "dialogue cut", so verify against
+  the film
 - if the package is insufficient, AI may inspect only the specific upstream
   artifact slice required for the current batch ambiguity
 
