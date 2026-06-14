@@ -23,11 +23,33 @@ The countermeasure is the same discipline used for any maintained codebase:
 clear acceptance criteria, a plan gate before code, small focused changes, and
 cheap deterministic verification.
 
-## Before asking AI to change code: fill this brief
+## Two phases: discovery, then execution
 
-Copy the fill-in brief from `references/task_brief_template.md`, complete it, and
-give it to the agent. If you cannot fill in **Acceptance**, the requirement is
-not clear enough to code yet — clarify first.
+First ask: **can you state Scope and Acceptance?**
+
+- **No — the requirement is fuzzy.** Run discovery first (below). Never let AI
+  write code while the requirement is fuzzy; that is where the iteration
+  multiplier explodes.
+- **Yes.** Skip to execution.
+
+### Phase 1 — Discovery (fuzzy requirement → a brief)
+
+Copy the discovery brief from `references/task_brief_template.md`. It asks the
+agent to, **read-only and without changing any code**: interview you until scope
+and "done" are decidable, investigate the relevant code, propose 2-3 approaches
+with tradeoffs, and draft a filled Task brief for your approval.
+
+Discovery is cheap because it is read + ask + propose — no edit/test/rerun loops,
+no whole-repo churn. Letting the agent interview you is the cheapest way to
+extract a requirement that is still only in your head. Use a strong model here
+(judgment matters); it stays cheap because it is read-only and short. The output
+is a filled Task brief, which hands off to execution.
+
+### Phase 2 — Execution (Scope and Acceptance are known)
+
+Copy the fill-in Task brief from `references/task_brief_template.md`, complete
+it, and give it to the agent. If you cannot fill in **Acceptance**, you are not
+in execution yet — go back to discovery.
 
 ## The loop
 
