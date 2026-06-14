@@ -57,6 +57,8 @@ need('class="scene-meta"' in h and "scene-meta-divergence" in h, "body scene sum
 need("未标注的对白" in h, "reading note missing baseline explanation")
 need("措辞、详略或说法" in h, "reading note missing 差异 explanation")
 need("没有找到对应" in h, "reading note missing 未见 explanation")
+need("已参考双语字幕，方便对照对白。" in h, "reading note missing bilingual subtitle line")
+need("本版是中文剧本学习版" not in h, "removed intro sentence still present")
 
 raise SystemExit(0)
 """

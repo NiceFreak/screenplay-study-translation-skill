@@ -1,6 +1,6 @@
 # Screenplay Study Translation Skill
 
-把英文电影 / 剧集的剧本 PDF，做成**结构可审计、便于阅读和人工审校的中文剧本学习版**（HTML + EPUB）。它结合可选的中文字幕，在保留剧本原有结构（场景标题、动作描述、角色、对白、格式标记）的前提下完成翻译。
+把英文电影 / 剧集的剧本 PDF，做成**结构可审计、便于阅读和人工审校的中文剧本学习版**（HTML + EPUB）。它结合可选的中英双语字幕，在保留剧本原有结构（场景标题、动作描述、角色、对白、格式标记）的前提下完成翻译。
 
 在整个过程中，AI 同时扮演资深影视剧本译者和文档工程师；你只需要提供输入、确认第一批的风格与格式、并验收成品，而不必逐行盯着翻译质量。
 
@@ -19,7 +19,7 @@
 
 ## Scope
 
-适合：英文电影 / 剧集剧本 PDF，最好仍能看出场景标题、动作描述、角色名和对白结构。可以搭配中文字幕，也可以只用剧本 PDF。
+适合：英文电影 / 剧集剧本 PDF，最好仍能看出场景标题、动作描述、角色名和对白结构。可以搭配中英双语字幕，也可以只用剧本 PDF。
 
 不适合：OCR 识别很差的扫描件、整理过度的粉丝文本、小说化改写文本，或已经看不出剧本结构的文档。当前默认交付物是 HTML 和 EPUB。
 
@@ -58,14 +58,14 @@ python3 -m pip install -r requirements.txt
 
 在 Codex CLI / IDE 中，可以运行 `/skills` 从列表选择 `screenplay-study-translation`，也可以在提示词里直接输入 `$screenplay-study-translation` 显式调用。普通文字里写 “使用 screenplay-study-translation skill” 通常也能触发，但发布文档和可复现流程里推荐使用 `$screenplay-study-translation`。
 
-普通使用时，不需要手动串联所有脚本。把真实项目放在 skill 仓库外，然后在 Codex 中给出剧本 PDF、可选字幕、输出目录和中文片名即可。用户主要只需要四个动作：
+普通使用时，不需要手动串联所有脚本。把真实项目放在 skill 仓库外，然后在 Codex 中给出剧本 PDF、可选双语字幕、输出目录和中文片名即可。用户主要只需要四个动作：
 
 ### 1. 生成预览
 
 ```text
 Use $screenplay-study-translation.
 剧本 PDF: /path/to/screenplay.pdf
-中文字幕: /path/to/subtitles.ass
+中英双语字幕: /path/to/subtitles.ass
 中文片名: 示例影片
 输出目录: /path/to/output
 生成预览。
@@ -111,7 +111,7 @@ Codex 会从最终 HTML 生成 `dist/screenplay-study.epub`。
 
 这句话视为明确授权 continuous batch execution：Codex 会从下一批开始逐批翻译、验证和生成预览；只要没有 FAIL、UNCERTAIN、工具错误或范围不清，就自动运行到最终 HTML/EPUB 交付。
 
-中文片名是新项目必填输入，用于 HTML 封面和读者可见标题；不要从文件名、字幕名或模型判断推断。高质量中文字幕强烈建议提供，但技术上可选；没有字幕时，不输出字幕标签，AI 翻译全部元素。
+中文片名是新项目必填输入，用于 HTML 封面和读者可见标题；不要从文件名、字幕名或模型判断推断。高质量中英双语字幕强烈建议提供（英文行用于与剧本对齐，中文行用作对白译文），但技术上可选；没有字幕时，不输出字幕标签，AI 翻译全部元素。
 
 ## Recommended Project Layout
 
@@ -145,7 +145,7 @@ my-film-project/
 
 ## Workflow
 
-1. Intake：收集 screenplay PDF、用户提供的中文片名、可选字幕、输出目录和页码映射预期。
+1. Intake：收集 screenplay PDF、用户提供的中文片名、可选双语字幕、输出目录和页码映射预期。
 2. Extraction：用 `scripts/extract_pdf.py` 抽取 `work/source-lines.json`；如有字幕，用 `scripts/parse_subtitles.py` 生成 `work/subtitles.json`。
 3. Source scan：用 `scripts/scan_markers.py` 生成 `work/source-markers.json`，再用 `scripts/validate_sample.py` 做首轮结构验证。
 4. Setup artifacts：确认 Stage 2 后，建立项目级 terminology、front matter、reader notes 和 `work/style-profile.json`；这些是后续批次的稳定上下文。
@@ -162,7 +162,7 @@ my-film-project/
 ## What It Handles
 
 - 完整翻译 screenplay 文档：对白、动作、场景标题、角色提示、括号说明、转场、画外音、格式标记和银幕文字。
-- 使用 `.ass`、`.srt`、`.vtt` 中文字幕校准对白与风格；没有字幕时，AI 翻译全部元素。
+- 使用 `.ass`、`.srt`、`.vtt` 中英双语字幕校准对白与风格；没有字幕时，AI 翻译全部元素。
 - 生成适合阅读和审校的 HTML，并导出适合移动端阅读的 EPUB：封面、阅读说明、专业术语、场景导航、源页码、阅读进度和中文 reflow。
 - 保留结构审计能力：batch JSON、source markers、HTML marker attributes、batch validation 和 final audit。
 

@@ -1634,7 +1634,6 @@ def render_reader_note(
   </section>"""
     return f"""  <section class="reader-note" aria-labelledby="reader-note-title">
     <h2 id="reader-note-title">阅读说明</h2>
-    <p>本版是中文剧本学习版，对照成片字幕制作；读剧本的重要价值之一，是发现成片对剧本的删改。</p>
     <p><strong>对白标识：</strong></p>
     <ul class="term-note-list">
       <li>未标注的对白 = 与成片基本一致（正文绝大多数）。</li>
@@ -1644,6 +1643,7 @@ def render_reader_note(
     <p>场次索引中的「N改·M未见」是该场与成片不同/未见的对白句数；场景时间码是该场首句台词在成片中的近似位置（用于手动跳转，并非场景起点）。</p>
     {markup_note}
     {page_note}
+    <p>已参考双语字幕，方便对照对白。</p>
   </section>"""
 
 
