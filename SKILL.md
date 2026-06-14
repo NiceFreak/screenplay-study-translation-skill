@@ -110,6 +110,12 @@ Audit all markers against output before finalization.
 
 - Remove task labels, duplicate indexes, debug notes, and workflow artifacts from final reader output.
 - HTML must include a collapsible scene index with working navigation links.
+- When bilingual subtitles are present, the reader output is also a
+  film-vs-screenplay divergence map: `字幕匹配` renders silently, `字幕差异` and
+  `字幕未见` render as distinct「成片差异」/「成片未见」markers, the scene index and
+  scene headings carry per-scene `N改·M未见` counts and an approximate scene
+  timecode, and an optional "只看分歧" filter (progressive enhancement, ignored
+  by EPUB) hides non-divergent lines. The reading note must explain the markers.
 - Generated HTML should restore confirmed source-visible screenplay formatting
   and structure after it has been captured in batch JSON, markers, layout
   metadata, or inline markup. Do not flatten source formatting signals into

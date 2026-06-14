@@ -188,6 +188,10 @@ STAGE 6: FINALIZATION
 - final HTML artifact
 - final EPUB artifact for mobile reading
 - navigation structure
+- when bilingual subtitles are present, a film-vs-screenplay divergence map:
+  silent 字幕匹配, distinct 成片差异 / 成片未见 markers, per-scene 改/未见 counts
+  and an approximate scene timecode in the scene index and scene headings, and a
+  progressive-enhancement "只看分歧" filter that EPUB safely ignores
 - cover with user-supplied Chinese title and translated physical title-page
   information when source rows are available
 - reading note for edition-wide conventions and professional terms
