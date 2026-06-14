@@ -44,7 +44,10 @@ SCREEN_TEXT_RE = re.compile(
 PROJECT_CONFIG_NAME = "project.yaml"
 READER_NOTES_PATH = Path("references") / "reader_notes.md"
 FRONT_MATTER_PATH = Path("references") / "front_matter.md"
-SUBTITLE_LABELS_WITH_TIME = {"字幕匹配", "字幕差异"}
+SUBTITLE_LABEL_DISPLAY = {
+    "字幕差异": ("成片差异", "subtitle-label--diff"),
+    "字幕未见": ("成片未见", "subtitle-label--unseen"),
+}
 
 
 class DisplayUnit(TypedDict):
@@ -323,6 +326,25 @@ html {
   font-weight: 700;
 }
 
+.scene-meta {
+  margin-left: auto;
+  padding-left: 0.8rem;
+  white-space: nowrap;
+  font-weight: 400;
+}
+
+.scene-meta-time {
+  color: var(--muted);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+}
+
+.scene-meta-divergence {
+  margin-left: 0.5em;
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+
 .scene-marker-slot {
   min-width: 0;
   align-self: center;
@@ -424,14 +446,39 @@ html {
 
 .subtitle-label {
   display: inline-block;
-  margin-right: 0.6em;
-  padding: 0.08rem 0.38rem;
-  color: var(--accent);
-  font-size: 0.78em;
+  margin-right: 0.5em;
+  padding: 0.02rem 0.34rem;
+  font-size: 0.74em;
   font-weight: 700;
-  line-height: 1.45;
-  border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--rule));
-  background: color-mix(in srgb, var(--accent) 8%, var(--paper));
+  line-height: 1.5;
+  vertical-align: 0.06em;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+}
+
+.subtitle-label--diff {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--rule));
+  background: color-mix(in srgb, var(--accent) 9%, var(--paper));
+}
+
+.subtitle-label--unseen {
+  color: var(--muted);
+  border-color: var(--rule);
+  background: color-mix(in srgb, var(--muted) 7%, var(--paper));
+}
+
+.scene-index-time {
+  margin-left: 0.4em;
+  color: var(--muted);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.82em;
+}
+
+.scene-index-divergence {
+  margin-left: 0.4em;
+  color: var(--accent);
+  font-size: 0.82em;
 }
 
 .proper-name {
@@ -662,11 +709,9 @@ def split_side_markers(
 
 
 def render_entry_content(entry: dict[str, Any]) -> str:
-    label = entry_subtitle_display_label(entry)
-    label_html = (
-        f'<span class="subtitle-label">{html.escape(label)}</span>' if label else ""
+    return render_text_paragraph(
+        str(entry["translation"]), prefix_html=subtitle_label_html(entry)
     )
-    return render_text_paragraph(str(entry["translation"]), prefix_html=label_html)
 
 
 def split_trailing_revision_asterisk(text: str) -> tuple[str, bool]:
@@ -790,6 +835,7 @@ def render_entry(entry: dict[str, Any]) -> str:
 
     content = render_entry_content(entry)
     if entry_type == "scene_heading":
+        content = f"{content}{scene_meta_html(entry)}"
         left, right, other = split_side_markers(markers)
         left_html = "".join(render_marker(marker, visible=True) for marker in left)
         right_html = "".join(render_marker(marker, visible=True) for marker in right)
@@ -903,12 +949,14 @@ def format_subtitle_time(value: Any) -> str:
     return f"{minutes:02d}:{seconds:02d}"
 
 
-def entry_subtitle_display_label(entry: dict[str, Any]) -> str:
-    label = entry_subtitle_label(entry)
-    if label not in SUBTITLE_LABELS_WITH_TIME:
-        return label
-    time_label = format_subtitle_time(entry.get("subtitle_start"))
-    return f"{label} {time_label}" if time_label else label
+def subtitle_label_html(entry: dict[str, Any]) -> str:
+    """Render a divergence marker. 字幕匹配 is silent (matches the film is the
+    baseline); only 字幕差异/字幕未见 surface, with distinct styling."""
+    display = SUBTITLE_LABEL_DISPLAY.get(entry_subtitle_label(entry))
+    if display is None:
+        return ""
+    text, modifier = display
+    return f'<span class="subtitle-label {modifier}">{html.escape(text)}</span>'
 
 
 def merged_display_text(entries: list[dict[str, Any]]) -> str:
@@ -935,9 +983,9 @@ def can_merge_entries(previous: dict[str, Any], current: dict[str, Any]) -> bool
     current_type = str(current.get("type") or "")
     if previous_type == current_type == "action":
         return True
-    return previous_type == current_type == "dialogue" and entry_subtitle_display_label(
+    return previous_type == current_type == "dialogue" and entry_subtitle_label(
         previous
-    ) == entry_subtitle_display_label(current)
+    ) == entry_subtitle_label(current)
 
 
 def reflow_grouping_pass(entries: list[dict[str, Any]]) -> list[DisplayUnit]:
@@ -995,11 +1043,9 @@ def render_display_unit(unit: DisplayUnit) -> str:
     entry_type = str(entry["type"])
     classes = f"entry {ENTRY_CLASS.get(entry_type, 'entry-unknown')} display-unit"
     attrs = unit_attrs(unit, classes)
-    label = entry_subtitle_display_label(entry)
-    label_html = (
-        f'<span class="subtitle-label">{html.escape(label)}</span>' if label else ""
+    content = render_text_paragraph(
+        unit["text"], prefix_html=subtitle_label_html(entry)
     )
-    content = render_text_paragraph(unit["text"], prefix_html=label_html)
     return f"<div {' '.join(attrs)}>{content}</div>"
 
 
@@ -1168,24 +1214,91 @@ def scene_marker_text(entry: dict[str, Any]) -> str:
     return ""
 
 
-def scene_index_entries(entries: list[dict[str, Any]]) -> list[dict[str, str]]:
-    items: list[dict[str, str]] = []
+def scene_divergence_label(diff: int, unseen: int) -> str:
+    parts = []
+    if diff:
+        parts.append(f"{diff}改")
+    if unseen:
+        parts.append(f"{unseen}未见")
+    return "·".join(parts)
+
+
+def annotate_scene_summaries(entries: list[dict[str, Any]]) -> None:
+    """Attach per-scene divergence counts and a timecode to each scene heading
+    so the body renders an EPUB-safe scene summary (the EPUB nav drops the
+    interactive scene index's extra spans)."""
+    current: dict[str, Any] | None = None
     for entry in entries:
-        if entry.get("type") != "scene_heading":
+        if entry.get("type") == "scene_heading":
+            current = entry
+            current["_scene_diff"] = 0
+            current["_scene_unseen"] = 0
+            current["_scene_time"] = ""
             continue
-        scene_no = scene_marker_text(entry)
-        if not scene_no:
+        if current is None or entry.get("type") != "dialogue":
             continue
-        display_page = entry.get("display_page")
-        page_text = str(display_page) if isinstance(display_page, int) else "?"
-        items.append(
-            {
+        label = entry_subtitle_label(entry)
+        if label == "字幕差异":
+            current["_scene_diff"] += 1
+        elif label == "字幕未见":
+            current["_scene_unseen"] += 1
+        if not current["_scene_time"]:
+            current["_scene_time"] = format_subtitle_time(entry.get("subtitle_start"))
+    for entry in entries:
+        if entry.get("type") == "scene_heading":
+            entry["_scene_divergence"] = scene_divergence_label(
+                int(entry.get("_scene_diff", 0)), int(entry.get("_scene_unseen", 0))
+            )
+
+
+def scene_meta_html(entry: dict[str, Any]) -> str:
+    time = str(entry.get("_scene_time") or "")
+    divergence = str(entry.get("_scene_divergence") or "")
+    parts = []
+    if time:
+        parts.append(f'<span class="scene-meta-time">~{html.escape(time)}</span>')
+    if divergence:
+        parts.append(
+            f'<span class="scene-meta-divergence">{html.escape(divergence)}</span>'
+        )
+    if not parts:
+        return ""
+    return f'<span class="scene-meta">{"".join(parts)}</span>'
+
+
+def scene_index_entries(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    current: dict[str, Any] | None = None
+    for entry in entries:
+        if entry.get("type") == "scene_heading":
+            scene_no = scene_marker_text(entry)
+            if not scene_no:
+                current = None
+                continue
+            display_page = entry.get("display_page")
+            current = {
                 "id": str(entry.get("id", "")),
                 "scene_no": scene_no,
                 "title": str(entry.get("translation", "")),
-                "page": page_text,
+                "page": str(display_page) if isinstance(display_page, int) else "?",
+                "time": "",
+                "divergence": "",
+                "diff": 0,
+                "unseen": 0,
             }
-        )
+            items.append(current)
+            continue
+        if current is None or entry.get("type") != "dialogue":
+            continue
+        label = entry_subtitle_label(entry)
+        if label == "字幕差异":
+            current["diff"] += 1
+        elif label == "字幕未见":
+            current["unseen"] += 1
+        if not current["time"]:
+            current["time"] = format_subtitle_time(entry.get("subtitle_start"))
+    for item in items:
+        item["divergence"] = scene_divergence_label(item["diff"], item["unseen"])
     return items
 
 
@@ -1506,16 +1619,31 @@ def render_reader_note(
 {body}
   </section>"""
 
-    subtitle_text = (
-        "已参考提供的中文字幕，方便对照对白。"
-        if batch.get("has_subtitles")
-        else "未提供参考字幕，译文仅依据剧本正文生成。"
+    markup_note = (
+        '<p><span class="proper-name">下划线</span>用于人物、地点、片名等专名；'
+        '<strong class="emphasis">加粗</strong>用于音效、银幕重点或剧本强调；'
+        '<em class="term">斜体</em>用于英文剧本术语、缩写或格式说明。</p>'
     )
+    page_note = "<p>对应原剧本显示页码；场号保留原剧本边栏编号。</p>"
+    if not batch.get("has_subtitles"):
+        return f"""  <section class="reader-note" aria-labelledby="reader-note-title">
+    <h2 id="reader-note-title">阅读说明</h2>
+    {markup_note}
+    {page_note}
+    <p>未提供参考字幕，译文仅依据剧本正文生成。</p>
+  </section>"""
     return f"""  <section class="reader-note" aria-labelledby="reader-note-title">
     <h2 id="reader-note-title">阅读说明</h2>
-    <p><span class="proper-name">下划线</span>用于人物、地点、片名等专名；<strong class="emphasis">加粗</strong>用于音效、银幕重点或剧本强调；<em class="term">斜体</em>用于英文剧本术语、缩写或格式说明。</p>
-    <p>对应原剧本显示页码；场号保留原剧本边栏编号。</p>
-    <p>{html.escape(subtitle_text)}</p>
+    <p><strong>对白标识：</strong></p>
+    <ul class="term-note-list">
+      <li>未标注的对白 = 与成片基本一致（正文绝大多数）。</li>
+      <li><span class="subtitle-label subtitle-label--diff">成片差异</span> = 剧本这句与成片台词不一致（成片在措辞、详略或说法上有改动）。</li>
+      <li><span class="subtitle-label subtitle-label--unseen">成片未见</span> = 剧本这句在成片字幕里没有找到对应（可能被删或未拍，可对照成片确认）。</li>
+    </ul>
+    <p>场次索引中的「N改·M未见」是该场与成片不同/未见的对白句数；场景时间码是该场首句台词在成片中的近似位置（用于手动跳转，并非场景起点）。</p>
+    {markup_note}
+    {page_note}
+    <p>已参考双语字幕，方便对照对白。</p>
   </section>"""
 
 
@@ -1532,10 +1660,21 @@ def render_scene_index(entries: list[dict[str, Any]]) -> str:
         label = render_inline_markup(item["title"])
         if "scene_no" in item:
             label = f"{html.escape(item['scene_no'])} · {label}"
+        time_html = (
+            f' <span class="scene-index-time">~{html.escape(item["time"])}</span>'
+            if item.get("time")
+            else ""
+        )
+        divergence_html = (
+            f' <span class="scene-index-divergence">{html.escape(item["divergence"])}</span>'
+            if item.get("divergence")
+            else ""
+        )
         links.append(
             "      "
             f'<li><a href="#{html.escape(item["id"], quote=True)}">{label}</a> '
-            f'<span class="scene-index-page">第 {html.escape(item["page"])} 页</span></li>'
+            f'<span class="scene-index-page">第 {html.escape(item["page"])} 页</span>'
+            f"{time_html}{divergence_html}</li>"
         )
     return f"""  <details class="scene-index" id="scene-index">
     <summary id="scene-index-title">{summary}</summary>
@@ -1586,6 +1725,7 @@ def build_html(
     reader_notes_markdown = load_reader_notes_for_batch(batch_path, project_path)
     note = render_reader_note(batch, reader_notes_markdown)
     entries = body_entries(batch)
+    annotate_scene_summaries(entries)
     display_units = reflow_grouping_pass(entries)
     scene_index = render_scene_index(entries)
     body = render_pages(display_units)

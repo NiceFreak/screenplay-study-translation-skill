@@ -77,7 +77,7 @@ def build_checks(tmp_dir: Path, python: str) -> list[SmokeCheck]:
                     "required=['<style>', '原剧本第 1 页', 'scene-marker-left', 'scene-marker-right', "
                     "'position: fixed;', 'scroll-padding-top', 'document.addEventListener(\"pointerdown\"', "
                     "'const closeSceneIndex = () =>', 'closeSceneIndex();', "
-                    "'font-weight: 700;', 'border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--rule));', "
+                    "'font-weight: 700;', 'border-color: color-mix(in srgb, var(--accent) 45%, var(--rule));', "
                     "'.entry.note', '.reader-annotation', '.revision-asterisk', "
                     "'<details class=\"scene-index\"', '<summary id=\"scene-index-title\">场次索引</summary>', "
                     "'本中文剧本学习版仅供个人学习与研究使用，请勿商用或公开传播。', "

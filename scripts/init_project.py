@@ -69,19 +69,30 @@ def project_yaml(
     )
 
 
-def reader_notes_markdown() -> str:
-    return "\n".join(
-        [
-            "# 阅读说明",
+def reader_notes_markdown(has_subtitles: bool = True) -> str:
+    lines = ["# 阅读说明", ""]
+    if has_subtitles:
+        lines += [
+            "## 对白标识",
             "",
-            "__下划线__用于人物、地点、片名等专名；**加粗**用于音效、银幕重点或剧本强调；*斜体*用于英文剧本术语、缩写或格式说明。",
+            "- 未标注的对白 = 与成片基本一致（正文绝大多数）。",
+            "- 「成片差异」= 剧本这句与成片台词不一致（成片在措辞、详略或说法上有改动）。",
+            "- 「成片未见」= 剧本这句在成片字幕里没有找到对应（可能被删或未拍，可对照成片确认）。",
             "",
-            "对应原剧本显示页码；场号保留原剧本边栏编号。",
-            "",
-            "已参考提供的中文字幕，方便对照对白。",
+            "场次索引中的「N改·M未见」是该场与成片不同/未见的对白句数；场景时间码是该场首句台词在成片中的近似位置（用于手动跳转，并非场景起点）。",
             "",
         ]
-    )
+    lines += [
+        "__下划线__用于人物、地点、片名等专名；**加粗**用于音效、银幕重点或剧本强调；*斜体*用于英文剧本术语、缩写或格式说明。",
+        "",
+        "对应原剧本显示页码；场号保留原剧本边栏编号。",
+        "",
+    ]
+    if has_subtitles:
+        lines += ["已参考双语字幕，方便对照对白。", ""]
+    else:
+        lines += ["未提供参考字幕，译文仅依据剧本正文生成。", ""]
+    return "\n".join(lines)
 
 
 def signal_lifecycle_json() -> str:
@@ -156,7 +167,9 @@ def main() -> int:
         signal_lifecycle_file.write_text(signal_lifecycle_json(), encoding="utf-8")
     reader_notes_file = project_dir / "references" / "reader_notes.md"
     if not reader_notes_file.exists() or args.force:
-        reader_notes_file.write_text(reader_notes_markdown(), encoding="utf-8")
+        reader_notes_file.write_text(
+            reader_notes_markdown(bool(args.subtitles)), encoding="utf-8"
+        )
     print(f"INFO project {project_file}")
     return 0
 

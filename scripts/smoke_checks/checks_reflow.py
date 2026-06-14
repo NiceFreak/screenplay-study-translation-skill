@@ -425,12 +425,14 @@ def build_checks(tmp_dir: Path, python: str) -> list[SmokeCheck]:
                     "'改编自<span class=\"proper-name\">作者乙</span>（Author Beta）的合成文本', "
                     "'class=\"entry scene-heading scene-heading-no-markers\"', "
                     '\'<div id="r000" class="entry scene-heading scene-heading-no-markers"\', '
-                    "'data-source-entry-ids=\"r004,r005\"', '<span class=\"subtitle-label\">字幕匹配 00:02</span>', "
+                    "'data-source-entry-ids=\"r004,r005\"', "
+                    "'<span class=\"subtitle-label subtitle-label--diff\">成片差异</span>', "
+                    "'<span class=\"subtitle-label subtitle-label--unseen\">成片未见</span>', "
                     "'data-source-entry-ids=\"r009,r010\"', "
                     "'- 一个孩子大张着嘴，门牙之间露出巨大的缺口，小舌头清清楚楚地垂在视野里。', "
                     "'格式约定', '<table>', '<th>English</th>', '<td>CONT&#x27;D</td>', "
                     "'本剧本出现的专业术语', '行尾星号（*）']; "
-                    "forbidden=['标题页信息：', '<p>Screenplay by</p>', '<p>Author Alpha</p>', '<span class=\"subtitle-label\">字幕未见 00:', "
+                    "forbidden=['标题页信息：', '<p>Screenplay by</p>', '<p>Author Alpha</p>', '<span class=\"subtitle-label\">字幕', "
                     "'<h3>阅读说明</h3>', '| English | Chinese | Notes |', "
                     '\'id="r000" class="entry scene-heading scene-heading-no-markers" data-source-entry-ids="r000" data-entry-type="scene_heading" data-pdf-page="13" data-display-page="12"><span class="scene-marker-slot\']; '
                     "missing=[item for item in required if item not in text]; "
