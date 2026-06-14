@@ -988,6 +988,56 @@ def can_merge_entries(previous: dict[str, Any], current: dict[str, Any]) -> bool
     ) == entry_subtitle_label(current)
 
 
+def paren_balance(text: str) -> int:
+    return (text.count("（") + text.count("(")) - (text.count("）") + text.count(")"))
+
+
+def join_parenthetical_group(group: list[dict[str, Any]]) -> dict[str, Any]:
+    merged = dict(group[0])
+    merged["translation"] = "".join(entry_translation(entry) for entry in group)
+    sources = [str(entry.get("source") or "").strip() for entry in group]
+    merged["source"] = " ".join(source for source in sources if source)
+    return merged
+
+
+def merge_wrapped_parentheticals(
+    entries: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Reflow a parenthetical description that the source wrapped across lines.
+
+    Only a parenthetical whose translation has an unclosed "（" (a wrapped
+    opener) absorbs following parenthetical continuations until the parens
+    balance. Self-contained wrylies such as （beat）or （对玛丽说）have balanced
+    parens and are never merged, so distinct directions are not joined.
+    """
+    merged: list[dict[str, Any]] = []
+    index = 0
+    while index < len(entries):
+        entry = entries[index]
+        if (
+            entry.get("type") == "parenthetical"
+            and paren_balance(entry_translation(entry)) > 0
+        ):
+            group = [entry]
+            depth = paren_balance(entry_translation(entry))
+            cursor = index + 1
+            while (
+                cursor < len(entries)
+                and depth > 0
+                and entries[cursor].get("type") == "parenthetical"
+            ):
+                group.append(entries[cursor])
+                depth += paren_balance(entry_translation(entries[cursor]))
+                cursor += 1
+            if len(group) > 1:
+                merged.append(join_parenthetical_group(group))
+                index = cursor
+                continue
+        merged.append(entry)
+        index += 1
+    return merged
+
+
 def reflow_grouping_pass(entries: list[dict[str, Any]]) -> list[DisplayUnit]:
     display_units: list[DisplayUnit] = []
     pending: list[dict[str, Any]] = []
@@ -1724,7 +1774,7 @@ def build_html(
     cover = render_cover(batch, source_rows, config, front_matter_markdown)
     reader_notes_markdown = load_reader_notes_for_batch(batch_path, project_path)
     note = render_reader_note(batch, reader_notes_markdown)
-    entries = body_entries(batch)
+    entries = merge_wrapped_parentheticals(body_entries(batch))
     annotate_scene_summaries(entries)
     display_units = reflow_grouping_pass(entries)
     scene_index = render_scene_index(entries)
