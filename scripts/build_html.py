@@ -481,6 +481,29 @@ html {
   font-size: 0.82em;
 }
 
+.divergence-filter {
+  margin-left: 0.8rem;
+  padding: 0.12rem 0.6rem;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 400;
+  background: color-mix(in srgb, var(--accent) 8%, var(--paper));
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--rule));
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.divergence-filter[hidden] {
+  display: none;
+}
+
+.screenplay-study.show-divergence-only
+  .script-page
+  .entry:not(.has-divergence):not(.scene-heading) {
+  display: none;
+}
+
 .proper-name {
   text-decoration: underline;
   text-decoration-thickness: 0.08em;
@@ -661,6 +684,18 @@ SCRIPT = """
       if (event.key === "Escape") closeSceneIndex();
     });
   }
+
+  const filterButton = document.querySelector("[data-divergence-filter]");
+  if (filterButton && root) {
+    filterButton.hidden = false;
+    filterButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const active = root.classList.toggle("show-divergence-only");
+      filterButton.setAttribute("aria-pressed", active ? "true" : "false");
+      filterButton.textContent = active ? "显示全部" : "只看分歧";
+    });
+  }
 })();
 """
 
@@ -815,6 +850,8 @@ def render_parallel_dialogue(
 def render_entry(entry: dict[str, Any]) -> str:
     entry_type = str(entry["type"])
     classes = f"entry {ENTRY_CLASS.get(entry_type, 'entry-unknown')}"
+    if entry_is_divergent(entry):
+        classes += " has-divergence"
     attrs = [
         f'id="{html.escape(str(entry["id"]), quote=True)}"',
         f'class="{classes}"',
@@ -933,6 +970,10 @@ def source_entry_ids(entries: list[dict[str, Any]]) -> list[str]:
 def entry_subtitle_label(entry: dict[str, Any]) -> str:
     label = entry.get("subtitle_label")
     return label if isinstance(label, str) else ""
+
+
+def entry_is_divergent(entry: dict[str, Any]) -> bool:
+    return entry_subtitle_label(entry) in {"字幕差异", "字幕未见"}
 
 
 def format_subtitle_time(value: Any) -> str:
@@ -1092,6 +1133,8 @@ def render_display_unit(unit: DisplayUnit) -> str:
     entry = unit_primary_entry(unit)
     entry_type = str(entry["type"])
     classes = f"entry {ENTRY_CLASS.get(entry_type, 'entry-unknown')} display-unit"
+    if entry_is_divergent(entry):
+        classes += " has-divergence"
     attrs = unit_attrs(unit, classes)
     content = render_text_paragraph(
         unit["text"], prefix_html=subtitle_label_html(entry)
@@ -1726,8 +1769,15 @@ def render_scene_index(entries: list[dict[str, Any]]) -> str:
             f'<span class="scene-index-page">第 {html.escape(item["page"])} 页</span>'
             f"{time_html}{divergence_html}</li>"
         )
+    has_divergence = any(item.get("diff") or item.get("unseen") for item in items)
+    filter_button = (
+        '<button type="button" class="divergence-filter" data-divergence-filter '
+        'aria-pressed="false" hidden>只看分歧</button>'
+        if has_divergence
+        else ""
+    )
     return f"""  <details class="scene-index" id="scene-index">
-    <summary id="scene-index-title">{summary}</summary>
+    <summary id="scene-index-title">{summary}{filter_button}</summary>
     <ul class="scene-index-list">
 {chr(10).join(links)}
     </ul>

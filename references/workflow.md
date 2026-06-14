@@ -222,8 +222,17 @@ Final HTML should include:
 - edition-wide format conventions and professional terms
 - conventions
 - scene index when source numbers exist, or scene-heading navigation when source numbers are absent
+- when bilingual subtitles are present, a film-vs-screenplay divergence map: the
+  scene index carries per-scene `N改·M未见` counts and an approximate scene
+  timecode, and each scene heading repeats that summary so it survives EPUB
 - page-ordered screenplay body
+- dialogue divergence markers when subtitles are present: `字幕匹配` renders
+  silently (matching the film is the baseline), `字幕差异` renders as a distinct
+  「成片差异」marker and `字幕未见` as a muted「成片未见」marker
 - structured marker attributes for screenplay-body scene numbers and format markers
+- an optional "只看分歧" filter as a progressive enhancement: the static page
+  shows everything (so EPUB is unaffected), and JS, when available, hides
+  non-divergent body lines to leave only changed/unseen dialogue
 - local reading-progress save and restore using browser storage
 
 Final HTML should not include:

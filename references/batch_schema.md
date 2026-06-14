@@ -55,6 +55,11 @@ A batch combines source text rows from `source-lines.json`, adjacent structure m
 ## Rules
 
 - Preserve source order.
+- A parenthetical description the source wrapped across lines (an entry whose
+  `translation` opens `（` without closing it) is reflowed into one line by the
+  renderer, absorbing following `parenthetical` continuations until the parens
+  balance. Self-contained wrylies such as `（停顿）` keep balanced parens and are
+  never merged, so distinct directions stay separate.
 - Reader notes may be added as `type: "note"` entries when they are tied to
   source evidence in the same batch range, such as subtitle annotations or
   front matter. Do not use notes to replace screenplay translation. Reader
@@ -75,6 +80,10 @@ A batch combines source text rows from `source-lines.json`, adjacent structure m
 - Subtitle label state belongs only in the structured `subtitle_label` field.
   Do not prefix or embed `字幕匹配`, `字幕差异`, or `字幕未见` inside
   `translation`; `translation` contains only reader-facing translated text.
+- The renderer shows these labels as a divergence map: `字幕匹配` is silent
+  (matching the film is the baseline), `字幕差异` renders as 「成片差异」 and
+  `字幕未见` as 「成片未见」. `subtitle_start` feeds the scene-level timecode in
+  the scene index and scene heading; it is no longer shown per dialogue line.
 - When a dialogue entry has a stable matched subtitle event, it may also include
   optional subtitle timestamp fields:
   - `subtitle_event_index`: zero-based index in `work/subtitles.json`.

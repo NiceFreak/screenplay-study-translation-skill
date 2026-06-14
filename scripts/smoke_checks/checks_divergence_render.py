@@ -53,6 +53,12 @@ need('scene-index-divergence' in h, "divergence span missing")
 need("01:23" in h and 'scene-index-time' in h, "scene-index timecode missing")
 # Body scene heading carries an EPUB-safe summary (the EPUB nav drops index spans).
 need('class="scene-meta"' in h and "scene-meta-divergence" in h, "body scene summary missing")
+# T1b: divergent entries tagged; filter control + JS + CSS present; default off.
+need("has-divergence" in h, "divergent entries not tagged for filtering")
+need("data-divergence-filter" in h, "只看分歧 filter control missing")
+need("show-divergence-only" in h, "filter toggle CSS/JS missing")
+need('class="screenplay-study"' in h, "root class changed")
+need("screenplay-study show-divergence-only" not in h, "filter must default to off")
 # Reading note explains each marker (all static, EPUB-safe).
 need("未标注的对白" in h, "reading note missing baseline explanation")
 need("措辞、详略或说法" in h, "reading note missing 差异 explanation")

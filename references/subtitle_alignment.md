@@ -19,6 +19,14 @@ Use neutral labels:
   enough to affect translation judgment.
 - `字幕未见`: no corresponding subtitle can be found for the dialogue.
 
+These labels render as a reader-facing divergence map: `字幕匹配` is silent
+(matching the film is the baseline, so unmarked dialogue means "same as the
+film"), `字幕差异` shows as 「成片差异」 and `字幕未见` as a muted 「成片未见」. The
+scene index and each scene heading carry per-scene `N改·M未见` counts plus an
+approximate scene timecode, and an optional "只看分歧" filter (progressive
+enhancement, ignored by EPUB) hides non-divergent lines. The reading note must
+explain these markers; see `references/workflow.md` for the full HTML contract.
+
 Do not require word-for-word matching.
 
 Do not use a fixed string-similarity threshold as the authority for these
