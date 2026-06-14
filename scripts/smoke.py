@@ -18,6 +18,7 @@ from pathlib import Path
 from smoke_checks import (
     checks_clean_project,
     checks_compile,
+    checks_divergence_render,
     checks_html_output,
     checks_merge,
     checks_pdf_scan,
@@ -46,6 +47,7 @@ CHECK_MODULES = [
     checks_html_output,
     checks_static_fixtures,
     checks_subtitle_autoconfirm,
+    checks_divergence_render,
 ]
 
 

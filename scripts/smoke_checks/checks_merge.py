@@ -337,7 +337,7 @@ def build_checks(tmp_dir: Path, python: str) -> list[SmokeCheck]:
                 (
                     "from pathlib import Path; "
                     f"text=Path({str(merge_html)!r}).read_text(encoding='utf-8'); "
-                    "required=['原剧本第 1 页', '原剧本第 2 页', '本场删去', '字幕匹配 01:05']; "
+                    "required=['原剧本第 1 页', '原剧本第 2 页', '本场删去', '~01:05']; "
                     "missing=[item for item in required if item not in text]; "
                     "raise SystemExit('merged html missing: '+repr(missing) if missing else 0)"
                 ),
@@ -383,7 +383,7 @@ def build_checks(tmp_dir: Path, python: str) -> list[SmokeCheck]:
                     "    bad.append('rights')\n"
                     "if '原剧本第 1 页' not in text:\n"
                     "    bad.append('toc-page')\n"
-                    "if '字幕匹配 01:05' not in text:\n"
+                    "if '~01:05' not in text:\n"
                     "    bad.append('subtitle-time')\n"
                     "if '内景。测试地点' not in text:\n"
                     "    bad.append('toc-scene')\n"

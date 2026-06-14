@@ -71,7 +71,7 @@ def build_checks(tmp_dir: Path, python: str) -> list[SmokeCheck]:
                     "text=path.read_text(encoding='utf-8'); "
                     "required=['# 阅读说明', '__下划线__用于人物、地点、片名等专名', "
                     "'对应原剧本显示页码；场号保留原剧本边栏编号。', "
-                    "'已参考提供的中文字幕，方便对照对白。']; "
+                    "'未标注的对白', '「成片差异」', '「成片未见」']; "
                     "forbidden=['本预览保留源剧本', '## 格式约定', "
                     "'| English | Chinese | Notes |', '## 本剧本出现的专业术语', "
                     "'**行尾星号（*）**', '**INT. / EXT.**', "
