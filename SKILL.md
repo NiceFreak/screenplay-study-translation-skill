@@ -31,6 +31,16 @@ It does NOT define pipeline stages or AI behavior rules.
   accepted and the user explicitly authorizes continuous batch execution under
   `AI_AGENT_CONTRACT.md`; continue batch by batch until final HTML and EPUB
   delivery unless a required stop condition occurs.
+- Activation intent "生成报告" or "输出生成报告" means: generate the project-level
+  cost/token observation report for the current project with
+  `scripts/cost_report.py`, summarize it for the user, and stop. The user does
+  not need to supply the script path, the project path (resolve it from the
+  active project), or pricing flags. This is a read-only step that spends no API
+  tokens. Resolve the pricing model in this order: `cost_estimate.model` in
+  `project.yaml`, else the model the agent is currently running as (pass it via
+  `--model`), else the built-in default. Always state that the report is an
+  artifact-size proxy, not a billing authority — a real per-screenplay figure
+  comes from the runtime's `/cost` or the provider console.
 - Preserve the screenplay as a document, not only as dialogue.
 - When reference subtitles are provided, use subtitle content directly for
   dialogue translations. Follow `references/subtitle_alignment.md` for label
