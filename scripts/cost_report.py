@@ -20,8 +20,9 @@ TRANSLATED_BATCH_RE = re.compile(
 DEFAULT_MODEL_NAME = "gpt-5.5"
 DEFAULT_OVERHEAD_MULTIPLIER = 1.35
 DEFAULT_PRICING_SOURCE = (
-    "OpenAI API/Codex pricing snapshot checked 2026-06-11; "
-    "verify current pricing before treating as anything beyond an estimate"
+    "Built-in pricing snapshot (OpenAI/Codex checked 2026-06-11, "
+    "Anthropic checked 2026-06-04); verify current pricing before treating "
+    "as anything beyond an estimate"
 )
 MODEL_PRICING_USD_PER_MILLION_TOKENS: dict[str, dict[str, float]] = {
     "gpt-5.5": {
@@ -55,6 +56,27 @@ MODEL_PRICING_USD_PER_MILLION_TOKENS: dict[str, dict[str, float]] = {
     "gpt-5-nano": {
         "input": 0.05,
         "output": 0.4,
+    },
+    # Anthropic pricing snapshot checked 2026-06-04 (USD per 1M tokens).
+    "claude-opus-4-8": {
+        "input": 5.0,
+        "output": 25.0,
+    },
+    "claude-opus-4-7": {
+        "input": 5.0,
+        "output": 25.0,
+    },
+    "claude-opus-4-6": {
+        "input": 5.0,
+        "output": 25.0,
+    },
+    "claude-sonnet-4-6": {
+        "input": 3.0,
+        "output": 15.0,
+    },
+    "claude-haiku-4-5": {
+        "input": 1.0,
+        "output": 5.0,
     },
 }
 
@@ -230,6 +252,8 @@ def resolve_cost_estimate_config(
     environment_model = first_present(
         os.environ.get("OPENAI_MODEL"),
         os.environ.get("CODEX_MODEL"),
+        os.environ.get("ANTHROPIC_MODEL"),
+        os.environ.get("CLAUDE_MODEL"),
         os.environ.get("MODEL_NAME"),
     )
     resolved_model, model_source = first_present_with_source(
