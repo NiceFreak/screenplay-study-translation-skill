@@ -35,6 +35,27 @@ development or rework:
 `scripts/cost_report.py` reports an artifact-size proxy, not billing. Do not
 treat its USD estimate as the real cost.
 
+A clean baseline is a prerequisite, not just a report: do not adopt any
+quality-for-cost lever (model tiering, reduced reasoning budget) without one,
+because without it you can neither confirm the saving nor detect a quality
+regression.
+
+## Which costs are safe to cut
+
+Not every token is equally safe to remove. Whether a cost can be cut depends on
+whether removing it degrades output the reader cannot independently verify. This
+follows from `SKILL.md` §1 — non-dialogue is the load-bearing surface, and
+subtitles are the primary external anchor for non-dialogue quality:
+
+- Dialogue cost is safe to compress: it is reused from subtitles, and the reader
+  has the bilingual subtitle as a parallel check.
+- Non-dialogue quality is load-bearing and must not be traded for savings: it
+  has no subtitle backstop and the reader depends entirely on it.
+
+Any lever that saves tokens by degrading non-dialogue translation — a cheaper
+bulk model, a trimmed reasoning budget on translation batches — spends exactly
+the quality the reader cannot verify, and conflicts with the tool's purpose.
+
 ## Cost levers and current status
 
 | Lever | Effect | Status |
@@ -42,10 +63,28 @@ treat its USD estimate as the real cost.
 | Reuse bilingual-subtitle Chinese for matched dialogue | model reuses instead of inventing → less output and reasoning | enabled (policy) |
 | Compact per-batch context (`package_batch_context.py`) | feed only the current page range, not full files | enabled |
 | 5–10 page batches | amortize fixed per-batch overhead | enabled (config) |
-| Prompt caching of skill / contract / terminology | cut repeated input cost across batches | runtime-level (depends on the agent harness, not the skill) |
-| Model tiering (cheaper bulk + strong model for gates) | lower $/token on bulk batches | not used (a single model keeps style and terminology consistent) |
+| Prompt caching of skill / contract / terminology | cut repeated input cost across batches | runtime-level; main zero-risk lever in ideal usage — run one screenplay in one continuous session |
+| Model tiering (cheaper bulk + strong model for gates) | lower $/token on bulk batches | not recommended — targets non-dialogue quality (SKILL.md §1) |
 
 Most token levers are already engaged. Prompt caching is a runtime setting rather
-than a code change. Model tiering is the main remaining lever, and it trades a
-style/consistency risk for savings — adopt it only with calibration on real
-output.
+than a code change, and in the intended scenario it is the main zero-risk lever
+(see below). Model tiering is not recommended for this tool: once subtitle reuse
+takes over dialogue, the model's remaining work is almost entirely non-dialogue —
+the load-bearing surface (SKILL.md §1) — so a cheaper bulk model spends exactly
+the quality the reader cannot verify. Treat it only as a theoretical option for
+future batch types with little judgment load, and never adopt it (or any
+quality-for-cost trade) without a real `/cost` baseline to verify both the saving
+and that quality did not regress.
+
+## Ideal usage is near the cost floor
+
+The intended scenario is an official standard screenplay PDF plus high-quality
+bilingual subtitles whose quality the user verifies. There, subtitle reuse
+already minimizes dialogue output and reasoning, and clean extraction removes
+structural-ambiguity reasoning and rework, so the architecture sits near its
+translation-cost floor. The one large, zero-risk lever left is prompt caching:
+run one screenplay in a single continuous session so the stable prefix (skill,
+contract, terminology, style profile) stays cache-warm and each batch's
+incremental input collapses to the compact `batch-context-pXXX.json` package. Do
+not start a new session per batch — that discards the cache. Every remaining
+lever trades non-dialogue quality and is not appropriate here.

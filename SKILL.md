@@ -42,6 +42,19 @@ It does NOT define pipeline stages or AI behavior rules.
 - Never replace action description with generic summaries.
 - Use the overall subtitle translation style as the primary input for
   `style-profile.json`; apply that style profile to non-dialogue translation.
+- Non-dialogue is the load-bearing surface of the edition. Dialogue has a
+  subtitle backstop the reader can check and is reused from subtitles directly;
+  non-dialogue (action, atmosphere, scene headings, transitions, on-screen text)
+  has no such backstop — the reader cannot read the source and depends entirely
+  on the AI translating as a senior screenplay translator. Never trade
+  non-dialogue translation quality for cost savings.
+- Reference subtitles are the primary external anchor for non-dialogue quality
+  even though subtitles contain no non-dialogue text. They anchor it through
+  three channels: terminology and proper nouns (near hard-constraint), the style
+  profile (register and tone calibration), and contextual consistency. Limits:
+  narrative-prose register and purely technical or cinematic markers cannot be
+  derived from dialogue subtitles alone and still require terminology and model
+  judgment.
 - Subtitle quality is judged by the user. The skill parses and applies provided
   subtitles, but does not automatically validate translation quality.
 - Require a user-supplied Chinese film title when initializing a new translation
